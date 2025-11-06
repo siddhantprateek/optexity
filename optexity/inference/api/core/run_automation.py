@@ -1,11 +1,8 @@
 import asyncio
 import logging
 
-from playwright.async_api import Locator, Page
-
 from optexity.inference.api.core.run_interaction import run_interaction_action
 from optexity.inference.api.infra.browser import Browser
-from optexity.schema.actions.interaction_action import InteractionAction
 from optexity.schema.automation import Automation
 from optexity.schema.memory import BrowserState, Memory
 
@@ -48,4 +45,9 @@ def expand_automation(automation: Automation) -> Automation:
 
 
 def fill_input_variables(automation: Automation, memory: Memory) -> Automation:
+    for node in automation.nodes:
+        if node.interaction_action:
+            node.interaction_action.replace_input_variables(
+                memory.variables.input_variables
+            )
     return automation

@@ -1,6 +1,7 @@
 from typing import Literal
 from uuid import uuid4
 
+from optexity.utils.utils import replace_variable_name_with_value
 from pydantic import BaseModel, model_validator
 
 
@@ -38,6 +39,13 @@ class BaseAction(BaseModel):
 
         return model
 
+    def replace_input_variables(self, input_variables: dict[str, list[str]]):
+        self.prompt_instructions = replace_variable_name_with_value(
+            self.prompt_instructions, input_variables
+        )
+        self.xpath = replace_variable_name_with_value(self.xpath, input_variables)
+        self.command = replace_variable_name_with_value(self.command, input_variables)
+
 
 class CheckAction(BaseAction):
     pass
@@ -66,16 +74,31 @@ class ClickElementAction(BaseAction):
 
         return model
 
+    def replace_input_variables(self, input_variables: dict[str, list[str]]):
+        self.download_filename = replace_variable_name_with_value(
+            self.download_filename, input_variables
+        )
+
 
 class InputTextAction(BaseAction):
     input_text: str | None = None
     is_slider: bool = False
     fill_or_type: Literal["fill", "type"] = "fill"
 
+    def replace_input_variables(self, input_variables: dict[str, list[str]]):
+        self.input_text = replace_variable_name_with_value(
+            self.input_text, input_variables
+        )
+
 
 class DownloadUrlAsPdfAction(BaseModel):
     # Used when the current page is a PDF and we want to download it
-    pass
+    download_filename: str | None = None
+
+    def replace_input_variables(self, input_variables: dict[str, list[str]]):
+        self.download_filename = replace_variable_name_with_value(
+            self.download_filename, input_variables
+        )
 
 
 class ScrollAction(BaseModel):
@@ -146,3 +169,15 @@ class InteractionAction(BaseModel):
             )
 
         return model
+
+    def replace_input_variables(self, input_variables: dict[str, list[str]]):
+        if self.click_element:
+            self.click_element.replace_input_variables(input_variables)
+        if self.input_text:
+            self.input_text.replace_input_variables(input_variables)
+        if self.select_option:
+            self.select_option.replace_input_variables(input_variables)
+        if self.check:
+            self.check.replace_input_variables(input_variables)
+        if self.download_url_as_pdf:
+            self.download_url_as_pdf.replace_input_variables(input_variables)

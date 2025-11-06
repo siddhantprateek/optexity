@@ -21,7 +21,7 @@ supabase_login_test = Automation(
             interaction_action=InteractionAction(
                 input_text=InputTextAction(
                     command="""get_by_role("textbox", name="Email")""",
-                    input_text="testusername",
+                    input_text="{username[0]}",
                     prompt_instructions="Enter the email",
                 )
             )
@@ -30,7 +30,7 @@ supabase_login_test = Automation(
             interaction_action=InteractionAction(
                 input_text=InputTextAction(
                     command="""get_by_role("textbox", name="Password")""",
-                    input_text="testpassword",
+                    input_text="{password[0]}",
                     prompt_instructions="Enter the password",
                 )
             )
