@@ -7,13 +7,20 @@ from optexity.inference.api.core.run_interaction import run_interaction_action
 from optexity.inference.api.infra.browser import Browser
 from optexity.schema.actions.interaction_action import InteractionAction
 from optexity.schema.automation import Automation
-from optexity.schema.memory import Memory
+from optexity.schema.memory import BrowserState, Memory
 
 logger = logging.getLogger(__name__)
 
 
 async def run_automation(automation: Automation, memory: Memory, browser: Browser):
+
+    automation = expand_automation(automation)
+    automation = fill_input_variables(automation, memory)
+
     for i, node in enumerate(automation.nodes):
+        memory.automation_state.step_index = i
+        memory.automation_state.try_index = 0
+        memory.browser_states.append(BrowserState(url=browser.page.url))
         logger.debug(
             f"--------------------------------Running node {i}--------------------------------"
         )
@@ -34,3 +41,11 @@ async def run_automation(automation: Automation, memory: Memory, browser: Browse
         logger.debug(
             f"--------------------------------Finished node {i}--------------------------------"
         )
+
+
+def expand_automation(automation: Automation) -> Automation:
+    return automation
+
+
+def fill_input_variables(automation: Automation, memory: Memory) -> Automation:
+    return automation

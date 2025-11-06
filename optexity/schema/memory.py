@@ -2,46 +2,47 @@ from pydantic import BaseModel, Field
 
 
 class NetworkRequest(BaseModel):
-    url: str = Field(..., description="The URL of the network request")
-    method: str = Field(..., description="The method of the network request")
-    status: int = Field(..., description="The status of the network request")
-    headers: dict = Field(..., description="The headers of the network request")
-    body: str = Field(..., description="The body of the network request")
+    url: str = Field(...)
+    method: str = Field(...)
+    status: int = Field(...)
+    headers: dict = Field(...)
+    body: str = Field(...)
 
 
 class NetworkError(BaseModel):
-    url: str = Field(..., description="The URL of the network error")
-    message: str = Field(..., description="The message of the network error")
-    stack_trace: str = Field(..., description="The stack trace of the network error")
+    url: str = Field(...)
+    message: str = Field(...)
+    stack_trace: str = Field(...)
 
 
 class NetworkResponse(BaseModel):
-    url: str = Field(..., description="The URL of the network response")
-    status: int = Field(..., description="The status of the network response")
-    headers: dict = Field(..., description="The headers of the network response")
-    body: str = Field(..., description="The body of the network response")
+    url: str = Field(...)
+    status: int = Field(...)
+    headers: dict = Field(...)
+    body: str = Field(...)
 
 
 class AutomationState(BaseModel):
-    step_index: int = Field(..., description="The index of the current step")
-    try_index: int = Field(..., description="The index of the current try")
+    step_index: int = Field(default_factory=lambda: -1)
+
+    try_index: int = Field(default_factory=lambda: -1)
 
 
 class BrowserState(BaseModel):
-    url: str = Field(..., description="The URL of the current page")
-    title: str = Field(..., description="The title of the current page")
-    screenshot: str = Field(..., description="The screenshot of the current page")
-    html: str = Field(..., description="The HTML of the current page")
-    axtree: str = Field(..., description="The AXTREE of the current page")
+    url: str = Field(...)
+    title: str | None = Field(default=None)
+    screenshot: str | None = Field(default=None)
+    html: str | None = Field(default=None)
+    axtree: str | None = Field(default=None)
 
 
 class Variables(BaseModel):
-    input_variables: dict = Field(..., description="The input variables")
-    output_variables: dict = Field(..., description="The output variables")
-    generated_variables: dict = Field(..., description="The generated variables")
+    input_variables: dict
+    output_variables: dict = Field(default_factory=dict)
+    generated_variables: dict = Field(default_factory=dict)
 
 
 class Memory(BaseModel):
     variables: Variables
-    automation_state: AutomationState
-    browser_states: list[BrowserState]
+    automation_state: AutomationState = Field(default_factory=AutomationState)
+    browser_states: list[BrowserState] = Field(default_factory=list)

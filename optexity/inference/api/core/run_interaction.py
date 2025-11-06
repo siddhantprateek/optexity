@@ -26,16 +26,16 @@ async def run_interaction_action(
     )
 
     if interaction_action.click_element:
-        await handle_click_element(interaction_action.click_element, browser)
+        await handle_click_element(interaction_action.click_element, memory, browser)
 
     elif interaction_action.input_text:
-        await handle_input_text(interaction_action.input_text, browser)
+        await handle_input_text(interaction_action.input_text, memory, browser)
     elif interaction_action.select_option:
         pass
 
 
 async def handle_click_element(
-    click_element_action: ClickElementAction, browser: Browser
+    click_element_action: ClickElementAction, memory: Memory, browser: Browser
 ):
     if click_element_action.command:
         try:
@@ -56,8 +56,10 @@ async def handle_click_element(
             logger.debug("Falling back to index locator")
 
     if click_element_action.prompt_instructions:
+        memory.automation_state.try_index += 1
         try:
             axtree = await browser.get_axtree()
+            memory.browser_states[-1].axtree = axtree
             index = get_index_from_prompt(
                 click_element_action.prompt_instructions, axtree
             )
@@ -68,7 +70,9 @@ async def handle_click_element(
             logger.debug("Falling back to index locator")
 
 
-async def handle_input_text(input_text_action: InputTextAction, browser: Browser):
+async def handle_input_text(
+    input_text_action: InputTextAction, memory: Memory, browser: Browser
+):
     if input_text_action.command:
         try:
             locator = await browser.get_locator_from_command(input_text_action.command)
@@ -84,8 +88,10 @@ async def handle_input_text(input_text_action: InputTextAction, browser: Browser
             logger.debug("Falling back to index locator")
 
     if input_text_action.prompt_instructions:
+        memory.automation_state.try_index += 1
         try:
             axtree = await browser.get_axtree()
+            memory.browser_states[-1].axtree = axtree
             index = get_index_from_prompt(input_text_action.prompt_instructions, axtree)
             await browser.input_text_index(index, input_text_action.input_text)
             return

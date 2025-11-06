@@ -2,9 +2,10 @@ import logging
 from typing import Literal
 from uuid import uuid4
 
+from playwright.async_api import Locator, Page
+
 from browser_use import Agent, BrowserSession, ChatGoogle
 from browser_use.agent.views import AgentStepInfo
-from playwright.async_api import Locator, Page
 
 logger = logging.getLogger(__name__)
 
