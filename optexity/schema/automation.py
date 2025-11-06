@@ -1,13 +1,12 @@
 from pydantic import BaseModel, model_validator
 
-from schema.actions.assertion_action import AssertionAction
-from schema.actions.extraction_action import ExtractionAction
-from schema.actions.interaction_action import InteractionAction
-from schema.actions.misc_action import PythonScriptAction
+from optexity.schema.actions.assertion_action import AssertionAction
+from optexity.schema.actions.extraction_action import ExtractionAction
+from optexity.schema.actions.interaction_action import InteractionAction
+from optexity.schema.actions.misc_action import PythonScriptAction
 
 
 class Node(BaseModel):
-    index: int
     interaction_action: InteractionAction | None = None
     assertion_action: AssertionAction | None = None
     extraction_action: ExtractionAction | None = None

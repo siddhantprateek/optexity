@@ -10,9 +10,9 @@ class StateJumpAction(BaseModel):
     next_state_index: int
 
 
-class RestartAction(StateJumpAction):
-    next_state_index: 0
+# class RestartAction(StateJumpAction):
+#     next_state_index: 0
 
 
-class StopAction(StateJumpAction):
-    next_state_index: -1
+# class StopAction(StateJumpAction):
+#     next_state_index: -1

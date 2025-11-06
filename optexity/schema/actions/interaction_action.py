@@ -1,4 +1,5 @@
 from typing import Literal
+from uuid import uuid4
 
 from pydantic import BaseModel, model_validator
 
@@ -49,7 +50,21 @@ class SelectOptionAction(BaseAction):
 
 class ClickElementAction(BaseAction):
     double_click: bool = False
+    expect_download: bool = False
     download_filename: str | None = None
+
+    @model_validator(mode="after")
+    def set_download_filename(cls, model: "ClickElementAction"):
+        if model.expect_download:
+            if model.download_filename is None:
+                model.download_filename = str(uuid4())[:8]
+        else:
+            if model.download_filename is not None:
+                raise ValueError(
+                    "download_filename is not allowed when expect_download is False"
+                )
+
+        return model
 
 
 class InputTextAction(BaseAction):
