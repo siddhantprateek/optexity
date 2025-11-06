@@ -3,13 +3,13 @@ from optexity.schema.actions.interaction_action import (
     InputTextAction,
     InteractionAction,
 )
-from optexity.schema.automation import Automation, Node
+from optexity.schema.automation import Automation, BasicNode
 
 supabase_login_test = Automation(
     name="Supabase Login Test",
     description="Login to Supabase",
     nodes=[
-        Node(
+        BasicNode(
             interaction_action=InteractionAction(
                 click_element=ClickElementAction(
                     command="""get_by_role("link", name="Sign in")""",
@@ -17,7 +17,7 @@ supabase_login_test = Automation(
                 )
             )
         ),
-        Node(
+        BasicNode(
             interaction_action=InteractionAction(
                 input_text=InputTextAction(
                     command="""get_by_role("textbox", name="Email")""",
@@ -26,7 +26,7 @@ supabase_login_test = Automation(
                 )
             )
         ),
-        Node(
+        BasicNode(
             interaction_action=InteractionAction(
                 input_text=InputTextAction(
                     command="""get_by_role("textbox", name="Password")""",
@@ -35,7 +35,7 @@ supabase_login_test = Automation(
                 )
             )
         ),
-        Node(
+        BasicNode(
             interaction_action=InteractionAction(
                 click_element=ClickElementAction(
                     command="""get_by_role("button", name="Sign In")""",

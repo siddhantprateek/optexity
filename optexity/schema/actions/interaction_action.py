@@ -39,12 +39,15 @@ class BaseAction(BaseModel):
 
         return model
 
-    def replace_input_variables(self, input_variables: dict[str, list[str]]):
-        self.prompt_instructions = replace_variable_name_with_value(
-            self.prompt_instructions, input_variables
-        )
-        self.xpath = replace_variable_name_with_value(self.xpath, input_variables)
-        self.command = replace_variable_name_with_value(self.command, input_variables)
+    def replace(self, pattern: str, replacement: str):
+        if self.prompt_instructions:
+            self.prompt_instructions = self.prompt_instructions.replace(
+                pattern, replacement
+            )
+        if self.xpath:
+            self.xpath = self.xpath.replace(pattern, replacement)
+        if self.command:
+            self.command = self.command.replace(pattern, replacement)
 
 
 class CheckAction(BaseAction):
@@ -74,10 +77,13 @@ class ClickElementAction(BaseAction):
 
         return model
 
-    def replace_input_variables(self, input_variables: dict[str, list[str]]):
-        self.download_filename = replace_variable_name_with_value(
-            self.download_filename, input_variables
-        )
+    def replace(self, pattern: str, replacement: str):
+        super().replace(pattern, replacement)
+        if self.download_filename:
+            self.download_filename = self.download_filename.replace(
+                pattern, replacement
+            )
+        return self
 
 
 class InputTextAction(BaseAction):
@@ -85,20 +91,23 @@ class InputTextAction(BaseAction):
     is_slider: bool = False
     fill_or_type: Literal["fill", "type"] = "fill"
 
-    def replace_input_variables(self, input_variables: dict[str, list[str]]):
-        self.input_text = replace_variable_name_with_value(
-            self.input_text, input_variables
-        )
+    def replace(self, pattern: str, replacement: str):
+        super().replace(pattern, replacement)
+        if self.input_text:
+            self.input_text = self.input_text.replace(pattern, replacement)
+        return self
 
 
 class DownloadUrlAsPdfAction(BaseModel):
     # Used when the current page is a PDF and we want to download it
     download_filename: str | None = None
 
-    def replace_input_variables(self, input_variables: dict[str, list[str]]):
-        self.download_filename = replace_variable_name_with_value(
-            self.download_filename, input_variables
-        )
+    def replace(self, pattern: str, replacement: str):
+        if self.download_filename:
+            self.download_filename = self.download_filename.replace(
+                pattern, replacement
+            )
+        return self
 
 
 class ScrollAction(BaseModel):
@@ -170,14 +179,16 @@ class InteractionAction(BaseModel):
 
         return model
 
-    def replace_input_variables(self, input_variables: dict[str, list[str]]):
+    def replace(self, pattern: str, replacement: str):
         if self.click_element:
-            self.click_element.replace_input_variables(input_variables)
+            self.click_element.replace(pattern, replacement)
         if self.input_text:
-            self.input_text.replace_input_variables(input_variables)
+            self.input_text.replace(pattern, replacement)
         if self.select_option:
-            self.select_option.replace_input_variables(input_variables)
+            self.select_option.replace(pattern, replacement)
         if self.check:
-            self.check.replace_input_variables(input_variables)
+            self.check.replace(pattern, replacement)
         if self.download_url_as_pdf:
-            self.download_url_as_pdf.replace_input_variables(input_variables)
+            self.download_url_as_pdf.replace(pattern, replacement)
+
+        return self

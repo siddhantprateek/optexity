@@ -1,19 +1,20 @@
-from pydantic import BaseModel, model_validator
+import re
 
 from optexity.schema.actions.assertion_action import AssertionAction
 from optexity.schema.actions.extraction_action import ExtractionAction
 from optexity.schema.actions.interaction_action import InteractionAction
 from optexity.schema.actions.misc_action import PythonScriptAction
+from pydantic import BaseModel, model_validator
 
 
-class Node(BaseModel):
+class BasicNode(BaseModel):
     interaction_action: InteractionAction | None = None
     assertion_action: AssertionAction | None = None
     extraction_action: ExtractionAction | None = None
     python_script_action: PythonScriptAction | None = None
 
     @model_validator(mode="after")
-    def validate_one_node(cls, model: "Node"):
+    def validate_one_node(cls, model: "BasicNode"):
         """Ensure exactly one of the node types is set and matches the type."""
         provided = {
             "interaction_action": model.interaction_action,
@@ -30,8 +31,42 @@ class Node(BaseModel):
 
         return model
 
+    def replace(self, pattern: str, replacement: str):
+        if self.interaction_action:
+            self.interaction_action.replace(pattern, replacement)
+        if self.assertion_action:
+            raise NotImplementedError(
+                "Assertion replacement function is not implemented"
+            )
+        if self.extraction_action:
+            raise NotImplementedError(
+                "Extraction replacement function is not implemented"
+            )
+        if self.python_script_action:
+            raise NotImplementedError(
+                "Python script replacement function is not implemented"
+            )
+
+        return self
+
+
+class ForLoopNode(BaseModel):
+    # Loops through range of values of {variable_name[index]}
+    variable_name: str
+    nodes: list[BasicNode]
+
 
 class Automation(BaseModel):
     name: str
     description: str
-    nodes: list[Node]
+    nodes: list[BasicNode | ForLoopNode]
+
+    def replace_input_variables(self, input_variables: dict[str, list[str]]):
+        for key, values in input_variables.items():
+            for index, value in enumerate(values):
+                pattern = f"{{{key}[{index}]}}"
+                for node in self.nodes:
+                    if isinstance(node, BasicNode):
+                        node.replace(pattern, value)
+
+        return self

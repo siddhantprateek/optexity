@@ -1,20 +1,31 @@
 import asyncio
 import logging
+from copy import deepcopy
 
 from optexity.inference.api.core.run_interaction import run_interaction_action
 from optexity.inference.api.infra.browser import Browser
-from optexity.schema.automation import Automation
+from optexity.schema.automation import Automation, BasicNode, ForLoopNode
 from optexity.schema.memory import BrowserState, Memory
 
 logger = logging.getLogger(__name__)
 
+# TODO: static check that index for all replacement of input variables are within the bounds of the input variables
+
+# TODO: static check that all for loop expansion for generated variables have some place where generated variables are added to the memory
+
+# TODO: Check that all for loop expansion for generated variables have some place where generated variables are added to the memory
+
+# TODO: give a warning where any variable of type {variable_name[index]} is used but variable_name is not in the memory in generated variables or in input variables
+
 
 async def run_automation(automation: Automation, memory: Memory, browser: Browser):
 
-    automation = expand_automation(automation)
-    automation = fill_input_variables(automation, memory)
+    # automation = expand_for_loop_based_on_input_variables(automation, memory)
+    automation.replace_input_variables(memory.variables.input_variables)
 
     for i, node in enumerate(automation.nodes):
+        # TODO: Fill generated variables
+        # TODO: Expand for loop based on generated variables
         memory.automation_state.step_index = i
         memory.automation_state.try_index = 0
         memory.browser_states.append(BrowserState(url=browser.page.url))
@@ -40,14 +51,25 @@ async def run_automation(automation: Automation, memory: Memory, browser: Browse
         )
 
 
-def expand_automation(automation: Automation) -> Automation:
-    return automation
-
-
-def fill_input_variables(automation: Automation, memory: Memory) -> Automation:
+def expand_for_loop_based_on_input_variables(
+    automation: Automation, memory: Memory
+) -> Automation:
+    new_automation = Automation(
+        name=automation.name,
+        description=automation.description,
+        nodes=[],
+    )
     for node in automation.nodes:
-        if node.interaction_action:
-            node.interaction_action.replace_input_variables(
-                memory.variables.input_variables
-            )
-    return automation
+        if isinstance(node, ForLoopNode):
+            if node.variable_name in memory.variables.input_variables:
+                for index, basic_node in enumerate(node.nodes):
+                    new_node = deepcopy(basic_node)
+                    new_node.replace("[index]", index)
+                    new_automation.nodes.append(new_node)
+
+            else:
+                new_automation.nodes.append(node)
+        else:
+            new_automation.nodes.append(node)
+
+    return new_automation
