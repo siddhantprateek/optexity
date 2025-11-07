@@ -26,9 +26,12 @@ async def handle_llm_extraction(
 ):
     if "axtree" in llm_extraction.source:
         axtree = await browser.get_axtree()
+    else:
+        axtree = None
     if "screenshot" in llm_extraction.source:
+        screenshot = await browser.get_screenshot()
+    else:
         screenshot = None
-        # screenshot = await browser.get_screenshot()
 
     prompt = "Extract the following from the axtree: " + axtree
     response, token_usage = llm_model.get_model_response_with_structured_output(
@@ -36,11 +39,21 @@ async def handle_llm_extraction(
         response_schema=llm_extraction.build_model(),
         screenshot=screenshot,
     )
+    response_dict = response.model_dump()
 
     memory.token_usage += token_usage
-    memory.variables.output_data.append(response.model_dump())
+    memory.variables.output_data.append(response_dict)
 
     for output_variable_name in llm_extraction.output_variable_names:
-        memory.variables.generated_variables[output_variable_name] = response[
-            output_variable_name
-        ]
+        if isinstance(response_dict[output_variable_name], list):
+            memory.variables.generated_variables[output_variable_name] = response_dict[
+                output_variable_name
+            ]
+        elif isinstance(response_dict[output_variable_name], str):
+            memory.variables.generated_variables[output_variable_name] = [
+                response_dict[output_variable_name]
+            ]
+        else:
+            raise ValueError(
+                f"Output variable {output_variable_name} must be a string or a list of strings"
+            )

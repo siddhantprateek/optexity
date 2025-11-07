@@ -28,7 +28,7 @@ class ActionNode(BaseModel):
                 "Exactly one of interaction_action, assertion_action, extraction_action, or python_script_action must be provided"
             )
 
-        assert model.end_sleep_time > 0, "end_sleep_time must be greater than 0"
+        assert model.end_sleep_time >= 0, "end_sleep_time must be greater than 0"
 
         return model
 
@@ -40,9 +40,7 @@ class ActionNode(BaseModel):
                 "Assertion replacement function is not implemented"
             )
         if self.extraction_action:
-            raise NotImplementedError(
-                "Extraction replacement function is not implemented"
-            )
+            self.extraction_action.replace(pattern, replacement)
         if self.python_script_action:
             raise NotImplementedError(
                 "Python script replacement function is not implemented"

@@ -54,6 +54,7 @@ async def run_automation(automation: Automation, memory: Memory, browser: Browse
                     await run_extraction_action(
                         action_node.extraction_action, memory, browser
                     )
+
                 # elif action_node.python_script_action:
                 #     await browser.run_python_script_action(action_node.python_script_action)
             except Exception as e:

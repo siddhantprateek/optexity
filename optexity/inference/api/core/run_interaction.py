@@ -3,8 +3,10 @@ import logging
 from optexity.inference.api.infra.browser import Browser
 from optexity.schema.actions.interaction_action import (
     ClickElementAction,
+    GoBackAction,
     InputTextAction,
     InteractionAction,
+    SelectOptionAction,
 )
 from optexity.schema.memory import Memory
 
@@ -24,11 +26,12 @@ async def run_interaction_action(
 
     if interaction_action.click_element:
         await handle_click_element(interaction_action.click_element, memory, browser)
-
     elif interaction_action.input_text:
         await handle_input_text(interaction_action.input_text, memory, browser)
     elif interaction_action.select_option:
-        pass
+        await handle_select_option(interaction_action.select_option, memory, browser)
+    elif interaction_action.go_back:
+        await handle_go_back(interaction_action.go_back, memory, browser)
 
 
 async def handle_click_element(
@@ -95,3 +98,28 @@ async def handle_input_text(
         except Exception as e:
             logger.error(f"Error in get_index_from_prompt: {e}")
             logger.debug("Falling back to index locator")
+
+
+async def handle_select_option(
+    select_option_action: SelectOptionAction, memory: Memory, browser: Browser
+):
+    if select_option_action.command:
+        try:
+            print(f"Selecting option: {select_option_action.select_values}")
+            locator = await browser.get_locator_from_command(
+                select_option_action.command
+            )
+            await locator.select_option(select_option_action.select_values)
+            return
+        except Exception as e:
+            logger.debug(f"Error in select_option_locator: {e}")
+            logger.debug("Falling back to index locator")
+
+
+async def handle_go_back(
+    go_back_action: GoBackAction, memory: Memory, browser: Browser
+):
+    page = await browser.get_current_page()
+    if page is None:
+        return
+    await page.go_back()

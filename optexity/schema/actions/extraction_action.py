@@ -26,12 +26,28 @@ class LLMExtraction(BaseModel):
     @model_validator(mode="after")
     def validate_output_var_in_format(self):
         ## TODO: implement this
+        for key in self.output_variable_names:
+            if key not in self.extraction_format:
+                raise ValueError(
+                    f"Output variable {key} not found in extraction_format"
+                )
+            if eval(self.extraction_format[key]) not in [str, list[str], List[str]]:
+                raise ValueError(
+                    f"Output variable {key} must be a string or a list of strings"
+                )
+
+        return self
+
+    def replace(self, pattern: str, replacement: str):
         return self
 
 
 class NetworkCallExtraction(BaseModel):
     url_pattern: Optional[str] = None
     header_filter: Optional[dict[str, str]] = None
+
+    def replace(self, pattern: str, replacement: str):
+        return self
 
 
 class PythonScriptExtraction(BaseModel):
@@ -44,6 +60,10 @@ class PythonScriptExtraction(BaseModel):
         if not v.strip():
             raise ValueError("Script cannot be empty")
         return v
+
+    def replace(self, pattern: str, replacement: str):
+        self.script = self.script.replace(pattern, replacement)
+        return self
 
 
 class ExtractionAction(BaseModel):
@@ -67,3 +87,12 @@ class ExtractionAction(BaseModel):
             )
 
         return model
+
+    def replace(self, pattern: str, replacement: str):
+        if self.network_call:
+            self.network_call.replace(pattern, replacement)
+        if self.llm:
+            self.llm.replace(pattern, replacement)
+        if self.python_script:
+            self.python_script.replace(pattern, replacement)
+        return self

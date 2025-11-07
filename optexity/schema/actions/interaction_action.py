@@ -57,6 +57,18 @@ class SelectOptionAction(BaseAction):
     select_values: list[str]
     download_filename: str | None = None
 
+    def replace(self, pattern: str, replacement: str):
+        super().replace(pattern, replacement)
+        if self.select_values:
+            self.select_values = [
+                value.replace(pattern, replacement) for value in self.select_values
+            ]
+        if self.download_filename:
+            self.download_filename = self.download_filename.replace(
+                pattern, replacement
+            )
+        return self
+
 
 class ClickElementAction(BaseAction):
     double_click: bool = False
