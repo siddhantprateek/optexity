@@ -1,7 +1,7 @@
 import logging
 
-from optexity.inference.api.infra.browser import Browser
-from optexity.inference.api.models import GeminiModels, get_llm_model
+from optexity.inference.infra.browser import Browser
+from optexity.inference.models import GeminiModels, get_llm_model
 from optexity.schema.actions.extraction_action import ExtractionAction, LLMExtraction
 from optexity.schema.memory import Memory
 

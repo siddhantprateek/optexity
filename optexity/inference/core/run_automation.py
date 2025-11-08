@@ -5,9 +5,9 @@ from pathlib import Path
 
 import aiofiles
 
-from optexity.inference.api.core.run_extraction import run_extraction_action
-from optexity.inference.api.core.run_interaction import run_interaction_action
-from optexity.inference.api.infra.browser import Browser
+from optexity.inference.core.run_extraction import run_extraction_action
+from optexity.inference.core.run_interaction import run_interaction_action
+from optexity.inference.infra.browser import Browser
 from optexity.schema.automation import ActionNode, Automation, ForLoopNode
 from optexity.schema.memory import BrowserState, Memory
 from optexity.utils.utils import save_screenshot

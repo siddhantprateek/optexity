@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from optexity.inference.api.infra.browser import Browser
+from optexity.inference.infra.browser import Browser
 from optexity.schema.actions.interaction_action import (
     ClickElementAction,
     GoBackAction,

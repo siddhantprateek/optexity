@@ -9,8 +9,8 @@ from optexity.examples.pshpgeorgia_medicaid import (
     pshpgeorgia_medicaid_test,
 )
 from optexity.examples.supabase_login import supabase_login_test
-from optexity.inference.api.core.run_automation import run_automation
-from optexity.inference.api.infra.browser import Browser
+from optexity.inference.core.run_automation import run_automation
+from optexity.inference.infra.browser import Browser
 from optexity.schema.memory import Memory, Variables
 
 load_dotenv()
