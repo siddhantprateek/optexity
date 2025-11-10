@@ -153,16 +153,17 @@ async def handle_click_element(
         else:
             await _actual_click()
 
-    last_error = await command_based_action_with_retry(
-        _click_locator,
-        click_element_action.command,
-        max_tries,
-        max_timeout_seconds_per_try,
-        click_element_action.assert_locator_presence,
-    )
+    if click_element_action.command:
+        last_error = await command_based_action_with_retry(
+            _click_locator,
+            click_element_action.command,
+            max_tries,
+            max_timeout_seconds_per_try,
+            click_element_action.assert_locator_presence,
+        )
 
-    if last_error is None:
-        return
+        if last_error is None:
+            return
 
     await prompt_based_action(
         browser.click_index,
@@ -191,16 +192,17 @@ async def handle_input_text(
                 timeout=max_timeout_seconds_per_try * 1000,
             )
 
-    last_error = await command_based_action_with_retry(
-        _input_text_locator,
-        input_text_action.command,
-        max_tries,
-        max_timeout_seconds_per_try,
-        input_text_action.assert_locator_presence,
-    )
+    if input_text_action.command:
+        last_error = await command_based_action_with_retry(
+            _input_text_locator,
+            input_text_action.command,
+            max_tries,
+            max_timeout_seconds_per_try,
+            input_text_action.assert_locator_presence,
+        )
 
-    if last_error is None:
-        return
+        if last_error is None:
+            return
 
     await prompt_based_action(
         browser.input_text_index,
@@ -244,16 +246,17 @@ async def handle_select_option(
         else:
             await _actual_select_option()
 
-    last_error = await command_based_action_with_retry(
-        _select_option_locator,
-        select_option_action.command,
-        max_tries,
-        max_timeout_seconds_per_try,
-        select_option_action.assert_locator_presence,
-    )
+    if select_option_action.command:
+        last_error = await command_based_action_with_retry(
+            _select_option_locator,
+            select_option_action.command,
+            max_tries,
+            max_timeout_seconds_per_try,
+            select_option_action.assert_locator_presence,
+        )
 
-    if last_error is None:
-        return
+        if last_error is None:
+            return
 
 
 async def handle_go_back(
