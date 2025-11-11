@@ -1,9 +1,10 @@
+from pydantic import BaseModel, model_validator
+
 from optexity.schema.actions.assertion_action import AssertionAction
 from optexity.schema.actions.extraction_action import ExtractionAction
 from optexity.schema.actions.interaction_action import InteractionAction
 from optexity.schema.actions.misc_action import PythonScriptAction
 from optexity.schema.actions.two_factor_auth_action import Fetch2faAction
-from pydantic import BaseModel, model_validator
 
 
 class ActionNode(BaseModel):

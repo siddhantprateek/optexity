@@ -3,10 +3,10 @@ import json
 import logging
 from typing import Literal
 
-from playwright.async_api import Locator, Response
-
 from browser_use import Agent, BrowserSession, ChatGoogle
 from browser_use.browser.views import BrowserStateSummary
+from playwright.async_api import Locator, Response
+
 from optexity.schema.memory import NetworkResponse
 
 logger = logging.getLogger(__name__)
