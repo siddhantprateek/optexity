@@ -98,16 +98,16 @@ class ForLoopNode(BaseModel):
     nodes: list[ActionNode]
 
 
-class ParametersWithExamples(BaseModel):
+class Parameters(BaseModel):
     input_parameters: dict[str, list[str]]
-    generated_parameter: dict[str, list[str]]
+    generated_parameters: dict[str, list[str]]
 
 
 class Automation(BaseModel):
     name: str
     description: str
     url: str
-    parameters_with_examples: ParametersWithExamples
+    parameters: Parameters
     nodes: list[ActionNode | ForLoopNode]
 
     @model_validator(mode="after")
