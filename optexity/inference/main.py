@@ -22,9 +22,6 @@ logger = logging.getLogger(__name__)
 
 async def run_supabase_login_test():
     logger.debug("Starting Supabase login test")
-
-
-    
     browser = Browser()
     memory = Memory(
         variables=Variables(
