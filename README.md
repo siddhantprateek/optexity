@@ -30,7 +30,6 @@ conda activate optexity
 pip install -e "external/browser-use"
 pip install -e .
 playwright install
-```
 pre-commit install --install-hooks
 pre-commit install --hook-type pre-push
 ```
