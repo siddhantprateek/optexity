@@ -32,6 +32,7 @@ async def run_automation(automation: Automation, memory: Memory, browser: Browse
 
     current_module = __name__.split(".")[0]  # top-level module/package
     logging.getLogger(current_module).addHandler(file_handler)
+    logging.getLogger("browser_use").setLevel(logging.INFO)
 
     logger.info(f"Running automation for task {memory.task_id}")
 
@@ -64,7 +65,7 @@ async def run_automation(automation: Automation, memory: Memory, browser: Browse
         )
     )
 
-    await save_memory_state(memory, None, memory.automation_state.step_index)
+    await save_memory_state(memory, None)
 
     logging.getLogger(current_module).removeHandler(file_handler)
 
@@ -118,7 +119,7 @@ async def run_automation_node(
         raise e
     finally:
 
-        await save_memory_state(memory, action_node, memory.automation_state.step_index)
+        await save_memory_state(memory, action_node)
     if action_node.expect_new_tab:
         found_new_tab, total_time = await browser.handle_new_tabs(
             action_node.max_new_tab_wait_time
@@ -136,13 +137,12 @@ async def run_automation_node(
     logger.debug(f"-----Finished node {memory.automation_state.step_index}-----")
 
 
-async def save_memory_state(memory: Memory, node: ActionNode | None, step_index: int):
-
-    step_directory = memory.logs_directory / f"step_{str(step_index)}"
-    step_directory.mkdir(parents=True, exist_ok=True)
+async def save_memory_state(memory: Memory, node: ActionNode | None):
 
     browser_state = memory.browser_states[-1]
     automation_state = memory.automation_state
+    step_directory = memory.logs_directory / f"step_{str(automation_state.step_index)}"
+    step_directory.mkdir(parents=True, exist_ok=True)
 
     save_screenshot(browser_state.screenshot, step_directory / "screenshot.png")
 

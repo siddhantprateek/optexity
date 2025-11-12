@@ -337,12 +337,20 @@ async def handle_agentic_task(
         browser_session = BrowserSession(
             cdp_url=browser.cdp_url, keep_alive=agentic_task_action.keep_alive
         )
+
+        step_directory = (
+            memory.logs_directory / f"step_{str(memory.automation_state.step_index)}"
+        )
+        step_directory.mkdir(parents=True, exist_ok=True)
+
         agent = Agent(
             task=agentic_task_action.task,
             llm=llm,
             browser_session=browser_session,
             use_vision=agentic_task_action.use_vision,
             tools=tools,
+            calculate_cost=True,
+            save_conversation_path=step_directory,
         )
         logger.debug(f"Starting browser session for agentic task {browser.cdp_url} ")
         await agent.browser_session.start()

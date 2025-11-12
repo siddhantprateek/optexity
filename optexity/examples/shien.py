@@ -5,7 +5,7 @@ from optexity.schema.actions.interaction_action import (
 from optexity.schema.automation import ActionNode, Automation, Parameters
 
 shien_test = Automation(
-    url="https://www.auquan.com/",
+    url="https://us.shein.com/",
     parameters=Parameters(
         input_parameters={},
         generated_parameters={},
@@ -14,7 +14,7 @@ shien_test = Automation(
         ActionNode(
             before_sleep_time=5,
             interaction_action=InteractionAction(
-                close_overlay_popup=CloseOverlayPopupAction(),
+                close_overlay_popup=CloseOverlayPopupAction(max_steps=20),
             ),
         ),
     ],
