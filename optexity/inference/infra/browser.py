@@ -20,6 +20,7 @@ class Browser:
         proxy: str = None,
         stealth: bool = True,
         backend: Literal["browser-use", "browserbase"] = "browser-use",
+        debug_port: int = 9222,
     ):
 
         if proxy:
@@ -30,7 +31,7 @@ class Browser:
         self.stealth = stealth
         self.user_data_dir = user_data_dir
         self.backend = backend
-        self.debug_port = 9222
+        self.debug_port = debug_port
 
         self.playwright = None
         self.browser = None
