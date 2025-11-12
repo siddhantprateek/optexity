@@ -10,5 +10,5 @@ logging.basicConfig(
         logging.FileHandler(Path("/tmp/optexity.log")),
     ],
 )
-
-logging.getLogger(__name__).setLevel(logging.DEBUG)
+current_module = __name__.split(".")[0]  # top-level module/package
+logging.getLogger(current_module).setLevel(logging.DEBUG)

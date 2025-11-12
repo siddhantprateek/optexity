@@ -3,6 +3,8 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field, model_validator
 
+from optexity.schema.actions.prompts import overlay_popup_prompt
+
 
 class Locator(BaseModel):
     regex_options: list[str] | None = None
@@ -160,6 +162,27 @@ class CloseAllButLastTabAction(BaseModel):
     pass
 
 
+class AgenticTask(BaseModel):
+    task: str
+    max_steps: int
+    backend: Literal["browser_use", "browserbase"]
+    use_vision: bool = False
+    keep_alive: bool = True
+
+    def replace(self, pattern: str, replacement: str):
+        if self.task:
+            self.task = self.task.replace(pattern, replacement)
+        return self
+
+
+class CloseOverlayPopupAction(AgenticTask):
+    task: str = Field(default=overlay_popup_prompt)
+    max_steps: int = Field(default=5)
+    backend: Literal["browser_use", "browserbase"] = Field(default="browser_use")
+    use_vision: bool = Field(default=True)
+    keep_alive: bool = Field(default=True)
+
+
 class InteractionAction(BaseModel):
     start_2fa_timer: bool = False
     max_tries: int = 10
@@ -176,6 +199,8 @@ class InteractionAction(BaseModel):
     switch_tab: SwitchTabAction | None = None
     close_current_tab: CloseCurrentTabAction | None = None
     close_all_but_last_tab: CloseAllButLastTabAction | None = None
+    agentic_task: AgenticTask | None = None
+    close_overlay_popup: CloseOverlayPopupAction | None = None
 
     @model_validator(mode="after")
     def validate_one_interaction(cls, model: "InteractionAction"):
@@ -193,12 +218,14 @@ class InteractionAction(BaseModel):
             "switch_tab": model.switch_tab,
             "close_current_tab": model.close_current_tab,
             "close_all_but_last_tab": model.close_all_but_last_tab,
+            "agentic_task": model.agentic_task,
+            "close_overlay_popup": model.close_overlay_popup,
         }
         non_null = [k for k, v in provided.items() if v is not None]
 
         if len(non_null) != 1:
             raise ValueError(
-                "Exactly one of click_element, input_text, select_option, check, download_url_as_pdf, scroll, upload_file, go_to_url, go_back, switch_tab, close_current_tab, or close_all_but_last_tab must be provided"
+                "Exactly one of click_element, input_text, select_option, check, download_url_as_pdf, scroll, upload_file, go_to_url, go_back, switch_tab, close_current_tab, close_all_but_last_tab, or agentic_task must be provided"
             )
 
         if model.start_2fa_timer:
@@ -219,5 +246,9 @@ class InteractionAction(BaseModel):
             self.check.replace(pattern, replacement)
         if self.download_url_as_pdf:
             self.download_url_as_pdf.replace(pattern, replacement)
+        if self.agentic_task:
+            self.agentic_task.replace(pattern, replacement)
+        if self.close_overlay_popup:
+            self.close_overlay_popup.replace(pattern, replacement)
 
         return self

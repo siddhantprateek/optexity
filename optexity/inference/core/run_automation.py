@@ -30,7 +30,8 @@ async def run_automation(automation: Automation, memory: Memory, browser: Browse
     file_handler = logging.FileHandler(str(memory.log_file_path))
     file_handler.setLevel(logging.DEBUG)
 
-    logging.getLogger("optexity").addHandler(file_handler)
+    current_module = __name__.split(".")[0]  # top-level module/package
+    logging.getLogger(current_module).addHandler(file_handler)
 
     logger.info(f"Running automation for task {memory.task_id}")
 
@@ -65,7 +66,7 @@ async def run_automation(automation: Automation, memory: Memory, browser: Browse
 
     await save_memory_state(memory, None, memory.automation_state.step_index)
 
-    logging.getLogger("optexity").removeHandler(file_handler)
+    logging.getLogger(current_module).removeHandler(file_handler)
 
 
 async def run_automation_node(

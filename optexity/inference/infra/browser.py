@@ -70,13 +70,11 @@ class Browser:
             self.context = await self.browser.new_context(no_viewport=True)
             self.page = await self.context.new_page()
 
-            browser_session = BrowserSession(cdp_url=self.cdp_url)
-
-            llm = ChatGoogle(model="gemini-flash-latest")
+            browser_session = BrowserSession(cdp_url=self.cdp_url, keep_alive=True)
 
             self.backend_agent = Agent(
                 task="",
-                llm=llm,
+                llm=ChatGoogle(model="gemini-flash-latest"),
                 browser_session=browser_session,
                 use_vision=False,
             )
@@ -90,15 +88,33 @@ class Browser:
             raise e
 
     async def stop(self):
-        if self.playwright is not None:
-            await self.backend_agent.browser_session.stop()
+        logger.debug("Stopping full system")
+        if self.backend_agent is not None:
+            logger.debug("Stopping backend agent")
+            self.backend_agent.stop()
+            if self.backend_agent.browser_session:
+                logger.debug("Resetting browser session")
+                await self.backend_agent.browser_session.stop()
+                # await self.backend_agent.browser_session._storage_state_watchdog._stop_monitoring()
+                # await self.backend_agent.browser_session.reset()
+                logger.debug("Browser session reset")
+            self.backend_agent = None
+
+        if self.context is not None:
+            logger.debug("Stopping context")
             await self.context.close()
+            self.context = None
+
+        if self.browser is not None:
+            logger.debug("Stopping browser")
             await self.browser.close()
+            self.browser = None
+
+        if self.playwright is not None:
+            logger.debug("Stopping playwright")
             await self.playwright.stop()
             self.playwright = None
-            self.browser = None
-            self.context = None
-            self.page = None
+        logger.debug("Full system stopped")
 
     async def get_current_page(self):
         if self.context is None:

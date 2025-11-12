@@ -5,12 +5,14 @@ from typing import Callable
 
 import aiofiles
 import requests
+from browser_use import Agent, BrowserSession, ChatGoogle, Tools
 
 from optexity.inference.agents.index_prediction.action_prediction_locator_axtree import (
     ActionPredictionLocatorAxtree,
 )
 from optexity.inference.infra.browser import Browser
 from optexity.schema.actions.interaction_action import (
+    AgenticTask,
     ClickElementAction,
     DownloadUrlAsPdfAction,
     GoBackAction,
@@ -64,6 +66,12 @@ async def run_interaction_action(
     elif interaction_action.download_url_as_pdf:
         await handle_download_url_as_pdf(
             interaction_action.download_url_as_pdf, memory, browser
+        )
+    elif interaction_action.agentic_task:
+        await handle_agentic_task(interaction_action.agentic_task, memory, browser)
+    elif interaction_action.close_overlay_popup:
+        await handle_agentic_task(
+            interaction_action.close_overlay_popup, memory, browser
         )
 
 
@@ -297,3 +305,54 @@ async def handle_download_url_as_pdf(
         return
 
     memory.downloaded_files.append(download_path)
+
+
+async def handle_agentic_task(
+    agentic_task_action: AgenticTask, memory: Memory, browser: Browser
+):
+
+    if agentic_task_action.backend == "browser_use":
+
+        tools = Tools(
+            exclude_actions=[
+                "search",
+                "navigate",
+                "go_back",
+                "upload_file",
+                "scroll",
+                "find_text",
+                "send_keys",
+                "evaluate",
+                "switch",
+                "close",
+                "extract",
+                "dropdown_options",
+                "select_dropdown",
+                "write_file",
+                "read_file",
+                "replace_file",
+            ]
+        )
+        llm = ChatGoogle(model="gemini-flash-latest")
+        browser_session = BrowserSession(
+            cdp_url=browser.cdp_url, keep_alive=agentic_task_action.keep_alive
+        )
+        agent = Agent(
+            task=agentic_task_action.task,
+            llm=llm,
+            browser_session=browser_session,
+            use_vision=agentic_task_action.use_vision,
+            tools=tools,
+        )
+        logger.debug(f"Starting browser session for agentic task {browser.cdp_url} ")
+        await agent.browser_session.start()
+        logger.debug(f"Finally running agentic task on browser_use {browser.cdp_url} ")
+        await agent.run(max_steps=agentic_task_action.max_steps)
+        logger.debug(f"Agentic task completed on browser_use {browser.cdp_url} ")
+        agent.stop()
+        if agent.browser_session:
+            await agent.browser_session.stop()
+            await agent.browser_session.reset()
+
+    elif agentic_task_action.backend == "browserbase":
+        raise NotImplementedError("Browserbase is not supported yet")
