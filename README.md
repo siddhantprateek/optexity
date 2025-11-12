@@ -15,6 +15,7 @@ git submodule update --init --recursive
 
 2. **Environment Setup**
 Create and activate a Conda environment with the required Python and Node.js versions:
+Install miniconda here - https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html#installing-in-silent-mode
 ```bash
 conda create -n optexity python=3.11 nodejs
 conda activate optexity
@@ -26,4 +27,5 @@ Install the required packages and build the Playwright framework. Run everything
 ```bash
 pip install -e "external/browser-use"
 pip install -e .
+playwright install
 ```
