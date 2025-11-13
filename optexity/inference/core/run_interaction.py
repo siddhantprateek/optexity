@@ -7,6 +7,8 @@ import aiofiles
 import requests
 from browser_use import Agent, BrowserSession, ChatGoogle, Tools
 
+from optexity.exceptions import AssertLocatorPresenceException
+from optexity.inference.agents.error_handler.error_handler import ErrorHandlerAgent
 from optexity.inference.agents.index_prediction.action_prediction_locator_axtree import (
     ActionPredictionLocatorAxtree,
 )
@@ -14,6 +16,7 @@ from optexity.inference.infra.browser import Browser
 from optexity.schema.actions.interaction_action import (
     AgenticTask,
     ClickElementAction,
+    CloseOverlayPopupAction,
     DownloadUrlAsPdfAction,
     GoBackAction,
     InputTextAction,
@@ -22,6 +25,9 @@ from optexity.schema.actions.interaction_action import (
 )
 from optexity.schema.memory import Memory
 
+error_handler_agent = ErrorHandlerAgent()
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -29,49 +35,60 @@ index_prediction_agent = ActionPredictionLocatorAxtree()
 
 
 async def run_interaction_action(
-    interaction_action: InteractionAction, memory: Memory, browser: Browser
+    interaction_action: InteractionAction,
+    memory: Memory,
+    browser: Browser,
+    retries_left: int,
 ):
+    if retries_left <= 0:
+        return
+
     logger.debug(
         f"---------Running interaction action {interaction_action.model_dump_json()}---------"
     )
 
-    if interaction_action.click_element:
-        if interaction_action.start_2fa_timer:
-            memory.automation_state.start_2fa_time = time.time()
-        await handle_click_element(
-            interaction_action.click_element,
-            memory,
-            browser,
-            interaction_action.max_timeout_seconds_per_try,
-            interaction_action.max_tries,
-        )
-    elif interaction_action.input_text:
-        await handle_input_text(
-            interaction_action.input_text,
-            memory,
-            browser,
-            interaction_action.max_timeout_seconds_per_try,
-            interaction_action.max_tries,
-        )
-    elif interaction_action.select_option:
-        await handle_select_option(
-            interaction_action.select_option,
-            memory,
-            browser,
-            interaction_action.max_timeout_seconds_per_try,
-            interaction_action.max_tries,
-        )
-    elif interaction_action.go_back:
-        await handle_go_back(interaction_action.go_back, memory, browser)
-    elif interaction_action.download_url_as_pdf:
-        await handle_download_url_as_pdf(
-            interaction_action.download_url_as_pdf, memory, browser
-        )
-    elif interaction_action.agentic_task:
-        await handle_agentic_task(interaction_action.agentic_task, memory, browser)
-    elif interaction_action.close_overlay_popup:
-        await handle_agentic_task(
-            interaction_action.close_overlay_popup, memory, browser
+    try:
+        if interaction_action.click_element:
+            if interaction_action.start_2fa_timer:
+                memory.automation_state.start_2fa_time = time.time()
+            await handle_click_element(
+                interaction_action.click_element,
+                memory,
+                browser,
+                interaction_action.max_timeout_seconds_per_try,
+                interaction_action.max_tries,
+            )
+        elif interaction_action.input_text:
+            await handle_input_text(
+                interaction_action.input_text,
+                memory,
+                browser,
+                interaction_action.max_timeout_seconds_per_try,
+                interaction_action.max_tries,
+            )
+        elif interaction_action.select_option:
+            await handle_select_option(
+                interaction_action.select_option,
+                memory,
+                browser,
+                interaction_action.max_timeout_seconds_per_try,
+                interaction_action.max_tries,
+            )
+        elif interaction_action.go_back:
+            await handle_go_back(interaction_action.go_back, memory, browser)
+        elif interaction_action.download_url_as_pdf:
+            await handle_download_url_as_pdf(
+                interaction_action.download_url_as_pdf, memory, browser
+            )
+        elif interaction_action.agentic_task:
+            await handle_agentic_task(interaction_action.agentic_task, memory, browser)
+        elif interaction_action.close_overlay_popup:
+            await handle_agentic_task(
+                interaction_action.close_overlay_popup, memory, browser
+            )
+    except AssertLocatorPresenceException as e:
+        await handle_assert_locator_presence_error(
+            e, interaction_action, memory, browser, retries_left
         )
 
 
@@ -101,7 +118,11 @@ async def command_based_action_with_retry(
         logger.debug(
             f"Error in {func.__name__} with assert_locator_presence: {func.__name__}: {last_error}"
         )
-        raise last_error
+        raise AssertLocatorPresenceException(
+            message=f"Error in {func.__name__} with assert_locator_presence: {func.__name__}",
+            original_error=last_error,
+            command=command,
+        )
 
 
 async def prompt_based_action(
@@ -308,7 +329,9 @@ async def handle_download_url_as_pdf(
 
 
 async def handle_agentic_task(
-    agentic_task_action: AgenticTask, memory: Memory, browser: Browser
+    agentic_task_action: AgenticTask | CloseOverlayPopupAction,
+    memory: Memory,
+    browser: Browser,
 ):
 
     if agentic_task_action.backend == "browser_use":
@@ -364,3 +387,37 @@ async def handle_agentic_task(
 
     elif agentic_task_action.backend == "browserbase":
         raise NotImplementedError("Browserbase is not supported yet")
+
+
+async def handle_assert_locator_presence_error(
+    error: AssertLocatorPresenceException,
+    interaction_action: InteractionAction,
+    memory: Memory,
+    browser: Browser,
+    retries_left: int,
+):
+    logger.debug(f"Handling assert locator presence error: {error.command}")
+    if retries_left > 1:
+        final_prompt, response, token_usage = error_handler_agent.classify_error(
+            error.command, memory.browser_states[-1].screenshot
+        )
+        memory.token_usage += token_usage
+
+        if response.error_type == "website_not_loaded":
+            await run_interaction_action(
+                interaction_action, memory, browser, retries_left - 1
+            )
+        elif response.error_type == "overlay_popup_blocking":
+            close_overlay_popup_action = CloseOverlayPopupAction()
+            await handle_agentic_task(close_overlay_popup_action, memory, browser)
+        elif response.error_type == "fatal_error":
+            logger.error(
+                f"Fatal error running node {memory.automation_state.step_index} after {retries_left} retries: {error.original_error}"
+            )
+            raise error
+        return
+    else:
+        logger.error(
+            f"Error running node {memory.automation_state.step_index} after {retries_left} retries: {error.original_error}"
+        )
+        raise error

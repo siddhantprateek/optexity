@@ -25,10 +25,6 @@ class ActionPredictionLocatorAxtree:
     ) -> tuple[str, IndexPredictionOutput, TokenUsage]:
 
         final_prompt = f"""
-        [INSTRUCTIONS]
-        {system_prompt}
-        [/INSTRUCTIONS]
-
         [INPUT]
         Goal: {goal}
 
@@ -40,9 +36,10 @@ class ActionPredictionLocatorAxtree:
         """
 
         response, token_usage = self.model.get_model_response_with_structured_output(
-            final_prompt,
-            IndexPredictionOutput,
-            screenshot,
+            prompt=final_prompt,
+            response_schema=IndexPredictionOutput,
+            screenshot=screenshot,
+            system_instruction=system_prompt,
         )
 
         return final_prompt, response, token_usage

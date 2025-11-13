@@ -103,7 +103,7 @@ async def run_automation_node(
             await browser.attach_network_listeners()
 
             await run_interaction_action(
-                action_node.interaction_action, memory, browser
+                action_node.interaction_action, memory, browser, 2
             )
         elif action_node.extraction_action:
             await run_extraction_action(action_node.extraction_action, memory, browser)

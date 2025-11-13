@@ -61,7 +61,7 @@ class Gemini(LLMModel):
                 config={
                     "response_mime_type": "application/json",
                     "system_instruction": system_instruction,
-                    "response_json_schema": response_schema.model_json_schema(),
+                    "response_schema": response_schema,
                 },
             )
             parsed_response: response_schema = response.parsed
