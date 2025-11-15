@@ -6,6 +6,8 @@ from copy import deepcopy
 from pathlib import Path
 
 import aiofiles
+from patchright._impl._errors import TimeoutError as PatchrightTimeoutError
+from playwright._impl._errors import TimeoutError as PlaywrightTimeoutError
 
 from optexity.inference.core.run_2fa import run_2fa_action
 from optexity.inference.core.run_extraction import run_extraction_action
@@ -218,6 +220,10 @@ async def sleep_for_page_to_load(browser: Browser, sleep_time: float):
     try:
         await page.wait_for_load_state("load", timeout=sleep_time * 1000)
     except TimeoutError as e:
+        pass
+    except PatchrightTimeoutError as e:
+        pass
+    except PlaywrightTimeoutError as e:
         pass
 
 

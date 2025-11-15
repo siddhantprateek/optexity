@@ -163,9 +163,13 @@ async def handle_click_element(
                 click_element_action.command
             )
             if click_element_action.double_click:
-                await locator.dblclick(timeout=max_timeout_seconds_per_try * 1000)
+                await locator.dblclick(
+                    no_wait_after=True, timeout=max_timeout_seconds_per_try * 1000
+                )
             else:
-                await locator.click(timeout=max_timeout_seconds_per_try * 1000)
+                await locator.click(
+                    no_wait_after=True, timeout=max_timeout_seconds_per_try * 1000
+                )
 
         if click_element_action.expect_download:
             page = await browser.get_current_page()
@@ -221,11 +225,14 @@ async def handle_input_text(
         locator = await browser.get_locator_from_command(input_text_action.command)
         if input_text_action.fill_or_type == "fill":
             await locator.fill(
-                input_text_action.input_text, timeout=max_timeout_seconds_per_try * 1000
+                input_text_action.input_text,
+                no_wait_after=True,
+                timeout=max_timeout_seconds_per_try * 1000,
             )
         else:
             await locator.type(
                 input_text_action.input_text,
+                no_wait_after=True,
                 timeout=max_timeout_seconds_per_try * 1000,
             )
 
@@ -262,7 +269,11 @@ async def handle_select_option(
             locator = await browser.get_locator_from_command(
                 select_option_action.command
             )
-            await locator.select_option(select_option_action.select_values)
+            await locator.select_option(
+                select_option_action.select_values,
+                no_wait_after=True,
+                timeout=max_timeout_seconds_per_try * 1000,
+            )
 
         if select_option_action.expect_download:
             page = await browser.get_current_page()
