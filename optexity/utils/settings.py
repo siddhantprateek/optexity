@@ -24,6 +24,7 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = env_path
+        extra = "allow"
 
 
 settings = Settings()
