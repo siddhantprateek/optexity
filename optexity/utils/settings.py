@@ -9,7 +9,6 @@ logger = logging.getLogger(__name__)
 env_path = os.getenv("ENV_PATH")
 if not env_path:
     logger.warning("ENV_PATH is not set, using default values")
-    raise ValueError("ENV_PATH is not set")
 
 
 class Settings(BaseSettings):
