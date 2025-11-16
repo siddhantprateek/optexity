@@ -1,10 +1,14 @@
+import logging
 import os
 from typing import Literal
 
 from pydantic_settings import BaseSettings
 
+logger = logging.getLogger(__name__)
+
 env_path = os.getenv("ENV_PATH")
 if not env_path:
+    logger.warning("ENV_PATH is not set, using default values")
     raise ValueError("ENV_PATH is not set")
 
 
@@ -23,7 +27,7 @@ class Settings(BaseSettings):
     DEPLOYMENT: Literal["local", "cloud"]
 
     class Config:
-        env_file = env_path
+        env_file = env_path if env_path else None
         extra = "allow"
 
 
