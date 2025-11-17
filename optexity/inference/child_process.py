@@ -86,6 +86,17 @@ async def allocate_task(task: Task = Body(...)):
         )
 
 
+@app.post("/set_child_process_id", tags=["info"])
+async def set_child_process_id(new_child_process_id: int = Body(...)):
+    """Set child process id endpoint."""
+    global child_process_id
+    child_process_id = new_child_process_id
+    return JSONResponse(
+        content={"success": True, "message": "Child process id has been set"},
+        status_code=200,
+    )
+
+
 @app.get("/is_task_running", tags=["info"])
 async def is_task_running():
     """Is task running endpoint."""
