@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import traceback
 from copy import deepcopy
 
 from patchright._impl._errors import TimeoutError as PatchrightTimeoutError
@@ -77,6 +78,7 @@ async def run_automation(task: Task, child_process_id: int):
                 await run_action_node(action_node, task, memory, browser)
         task.status = "success"
     except Exception as e:
+        logger.error(f"Error running automation: {traceback.format_exc()}")
         task.error = str(e)
         task.status = "failed"
     finally:
