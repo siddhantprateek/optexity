@@ -2,13 +2,16 @@ import argparse
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+from urllib.parse import urljoin
 
+import httpx
 from fastapi import Body, FastAPI
 from fastapi.responses import JSONResponse
 from uvicorn import run
 
 from optexity.inference.core.run_automation import run_automation
 from optexity.schema.task import Task
+from optexity.utils.settings import settings
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -16,10 +19,22 @@ logger = logging.getLogger(__name__)
 child_process_id = None
 
 
+async def check_main_server_health():
+    url = urljoin(settings.SERVER_URL, settings.HEALTH_ENDPOINT)
+    while True:
+        try:
+            response = await httpx.get("http://localhost:8000/health")
+            response.raise_for_status()
+        except Exception as e:
+            logger.error(f"Error checking main server health: {e}")
+            await asyncio.sleep(10)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown."""
     # Startup
+
     asyncio.create_task(task_processor())
     logger.info("Task processor background task started")
     yield
