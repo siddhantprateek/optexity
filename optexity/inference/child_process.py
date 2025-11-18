@@ -7,6 +7,7 @@ from urllib.parse import urljoin
 import httpx
 from fastapi import Body, FastAPI
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from uvicorn import run
 
 from optexity.inference.core.run_automation import run_automation
@@ -15,6 +16,11 @@ from optexity.utils.settings import settings
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+class ChildProcessIdRequest(BaseModel):
+    new_child_process_id: str
+
 
 child_process_id = None
 
@@ -87,10 +93,10 @@ async def allocate_task(task: Task = Body(...)):
 
 
 @app.post("/set_child_process_id", tags=["info"])
-async def set_child_process_id(new_child_process_id: str = Body(...)):
+async def set_child_process_id(request: ChildProcessIdRequest):
     """Set child process id endpoint."""
     global child_process_id
-    child_process_id = int(new_child_process_id)
+    child_process_id = int(request.new_child_process_id)
     return JSONResponse(
         content={"success": True, "message": "Child process id has been set"},
         status_code=200,
