@@ -3,7 +3,7 @@
     "navigation": [
         {
             "group": "Getting Started",
-            "pages": ["/docs/helloworld"]
+            "pages": ["/docs/installation"]
         }
     ],
     "favicon": "/logo/Optexity_logo_small.svg",
