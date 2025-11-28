@@ -1,0 +1,385 @@
+---
+title: Extraction Actions
+description: Capturing data from web pages
+---
+
+Extraction actions capture data from web pages during automation. They're essential for scraping data, validating results, and feeding dynamic values into subsequent actions.
+
+## Overview
+
+Every extraction action is wrapped in an `ExtractionAction` container:
+
+```python
+from optexity.schema.actions.extraction_action import (
+    ExtractionAction,
+    LLMExtraction,
+)
+from optexity.schema.automation import ActionNode
+
+node = ActionNode(
+    extraction_action=ExtractionAction(
+        llm=LLMExtraction(
+            source=["axtree"],
+            extraction_format={"title": "str"},
+            extraction_instructions="Extract the page title",
+        )
+    )
+)
+```
+
+An `ExtractionAction` contains exactly one of:
+
+| Type | Purpose |
+|------|---------|
+| `llm` | Use LLM to extract structured data from page content |
+| `network_call` | Capture data from network requests/responses |
+| `python_script` | Run custom Python code to extract data |
+| `screenshot` | Capture a screenshot of the page |
+
+## LLM Extraction
+
+The most powerful extraction method. Uses an LLM to parse page content and extract structured data.
+
+```python
+from optexity.schema.actions.extraction_action import (
+    ExtractionAction,
+    LLMExtraction,
+)
+
+# Basic extraction
+ActionNode(
+    extraction_action=ExtractionAction(
+        llm=LLMExtraction(
+            source=["axtree"],
+            extraction_format={
+                "product_name": "str",
+                "price": "str",
+                "availability": "str",
+            },
+            extraction_instructions="Extract the product name, price, and availability from the product page",
+        )
+    )
+)
+```
+
+### Source Types
+
+The `source` field specifies what the LLM analyzes:
+
+| Source | Description | Best For |
+|--------|-------------|----------|
+| `axtree` | Accessibility tree (structured text representation) | Most use cases, tables, forms |
+| `screenshot` | Visual screenshot of the page | Visual layouts, charts, images |
+
+You can combine sources:
+
+```python
+source=["axtree", "screenshot"]  # LLM sees both text and visual
+```
+
+### Extraction Format
+
+Define the expected output structure using Python type hints:
+
+```python
+# Single values
+extraction_format={
+    "title": "str",
+    "description": "str",
+}
+
+# Lists
+extraction_format={
+    "product_ids": "List[str]",
+    "prices": "List[str]",
+}
+
+# Mixed
+extraction_format={
+    "page_title": "str",
+    "items": "List[str]",
+    "total_count": "str",
+}
+```
+
+<Note>
+Only `str` and `List[str]` (or `list[str]`) are supported as types.
+</Note>
+
+### Output Variables
+
+To store extracted values for use in subsequent actions, specify `output_variable_names`:
+
+```python
+ActionNode(
+    extraction_action=ExtractionAction(
+        llm=LLMExtraction(
+            source=["axtree"],
+            extraction_format={
+                "order_ids": "List[str]",
+                "total": "str",
+            },
+            extraction_instructions="Extract all order IDs from the orders table",
+            output_variable_names=["order_ids"],  # Store order_ids in generated_parameters
+        )
+    )
+)
+```
+
+After this action, you can use `{order_ids[0]}`, `{order_ids[1]}`, etc., or iterate with `ForLoopNode`.
+
+### Writing Good Extraction Instructions
+
+<CardGroup cols={2}>
+<Card title="Be Specific" icon="bullseye">
+  Describe exactly what data you want
+</Card>
+<Card title="Provide Context" icon="map">
+  Mention where the data appears on the page
+</Card>
+</CardGroup>
+
+**Good examples:**
+
+```python
+# Clear and specific
+extraction_instructions="Extract all authorization numbers from the Authorizations table. The Auth Nbr column contains values like 'AUTH-12345'."
+
+# With format hints
+extraction_instructions="Extract the order status. It should be one of: 'Pending', 'Processing', 'Shipped', 'Delivered'."
+
+# Multiple fields with context
+extraction_instructions="From the patient info section, extract: patient name (shown as 'Name:'), date of birth (shown as 'DOB:'), and member ID."
+```
+
+**Poor examples:**
+
+```python
+# Too vague
+extraction_instructions="Get the data"
+
+# Ambiguous
+extraction_instructions="Extract the numbers"
+```
+
+### Complete Example
+
+```python
+from optexity.schema.automation import ActionNode, ForLoopNode
+from optexity.schema.actions.extraction_action import ExtractionAction, LLMExtraction
+from optexity.schema.actions.interaction_action import InteractionAction, ClickElementAction
+
+# Step 1: Extract list of items
+ActionNode(
+    extraction_action=ExtractionAction(
+        llm=LLMExtraction(
+            source=["axtree"],
+            extraction_format={
+                "authorization_numbers": "List[str]",
+            },
+            extraction_instructions="Extract all authorization numbers from the table. Look for the 'Auth Nbr' column.",
+            output_variable_names=["authorization_numbers"],
+        )
+    )
+),
+
+# Step 2: Loop through extracted items
+ForLoopNode(
+    variable_name="authorization_numbers",
+    nodes=[
+        ActionNode(
+            interaction_action=InteractionAction(
+                click_element=ClickElementAction(
+                    command="""get_by_role("link", name="{authorization_numbers[index]}")""",
+                    prompt_instructions="Click on authorization {authorization_numbers[index]}",
+                )
+            )
+        ),
+        # Extract details for each
+        ActionNode(
+            extraction_action=ExtractionAction(
+                llm=LLMExtraction(
+                    source=["axtree"],
+                    extraction_format={
+                        "auth_status": "str",
+                        "start_date": "str",
+                        "end_date": "str",
+                        "units_approved": "str",
+                    },
+                    extraction_instructions="Extract authorization details: status, start date, end date, and units approved.",
+                )
+            )
+        ),
+    ],
+)
+```
+
+## Network Call Extraction
+
+Capture data directly from network requests. Useful for APIs and AJAX calls.
+
+```python
+from optexity.schema.actions.extraction_action import (
+    ExtractionAction,
+    NetworkCallExtraction,
+)
+
+ActionNode(
+    extraction_action=ExtractionAction(
+        network_call=NetworkCallExtraction(
+            url_pattern="https://api.example.com/orders"
+        )
+    )
+)
+```
+
+### Filtering Requests
+
+```python
+# Match by URL pattern
+NetworkCallExtraction(
+    url_pattern="https://api.example.com/v1/search"
+)
+
+# Match by URL and headers
+NetworkCallExtraction(
+    url_pattern="https://api.example.com/data",
+    header_filter={
+        "content-type": "application/json"
+    }
+)
+```
+
+### Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `url_pattern` | `str \| None` | `None` | URL pattern to match |
+| `header_filter` | `dict[str, str] \| None` | `None` | Headers that must be present |
+
+## Python Script Extraction
+
+Run custom Python code to extract or process data.
+
+```python
+from optexity.schema.actions.extraction_action import (
+    ExtractionAction,
+    PythonScriptExtraction,
+)
+
+ActionNode(
+    extraction_action=ExtractionAction(
+        python_script=PythonScriptExtraction(
+            script='''
+import re
+
+# Access page content
+content = await page.content()
+
+# Extract using regex
+matches = re.findall(r'Order #(\\d+)', content)
+print(f"Found {len(matches)} orders")
+'''
+        )
+    )
+)
+```
+
+<Warning>
+Python scripts execute in an async context. Use `await` for Playwright operations.
+</Warning>
+
+### Accessing the Page
+
+The script has access to the Playwright `page` object:
+
+```python
+script='''
+# Get page URL
+url = page.url
+
+# Get page content
+html = await page.content()
+
+# Evaluate JavaScript
+result = await page.evaluate("document.title")
+
+# Query elements
+elements = await page.query_selector_all(".item")
+'''
+```
+
+## Screenshot Extraction
+
+Capture a screenshot of the current page.
+
+```python
+from optexity.schema.actions.extraction_action import (
+    ExtractionAction,
+    ScreenshotExtraction,
+)
+
+# Full page screenshot
+ActionNode(
+    extraction_action=ExtractionAction(
+        screenshot=ScreenshotExtraction(
+            filename="order_confirmation.png",
+            full_page=True,
+        )
+    )
+)
+
+# Viewport only
+ActionNode(
+    extraction_action=ExtractionAction(
+        screenshot=ScreenshotExtraction(
+            filename="visible_area.png",
+            full_page=False,
+        )
+    )
+)
+```
+
+### Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `filename` | `str` | Required | Output filename for the screenshot |
+| `full_page` | `bool` | `True` | Capture entire page or just viewport |
+
+## Timing Considerations
+
+Extraction actions have different default timing:
+
+| Property | Default for Extractions |
+|----------|------------------------|
+| `before_sleep_time` | `3.0` seconds |
+| `end_sleep_time` | `0.0` seconds |
+
+This allows the page to fully load before extraction. Override if needed:
+
+```python
+ActionNode(
+    extraction_action=ExtractionAction(
+        llm=LLMExtraction(...)
+    ),
+    before_sleep_time=5.0,  # Wait longer for slow pages
+)
+```
+
+## When to Use Each Extraction Type
+
+| Scenario | Recommended Type |
+|----------|-----------------|
+| Extract structured data from visible content | `llm` with `axtree` |
+| Capture data from charts or images | `llm` with `screenshot` |
+| Intercept API responses | `network_call` |
+| Complex data processing | `python_script` |
+| Visual record/proof | `screenshot` |
+
+## Next Steps
+
+- Learn about [Control Flow](/docs/control-flow) to iterate over extracted data
+- See [Parameters & Variables](/docs/parameters-variables) for using extracted values
+- Check [Best Practices](/docs/best-practices) for extraction tips
+

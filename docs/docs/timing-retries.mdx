@@ -1,0 +1,321 @@
+---
+title: Timing & Retries
+description: Controlling execution timing and handling failures
+---
+
+Web automation requires careful timing. Pages load at different speeds, elements appear dynamically, and networks can be slow. Optexity provides several mechanisms to handle these challenges.
+
+## Overview
+
+Timing and retries are controlled at two levels:
+
+| Level | Properties |
+|-------|------------|
+| **ActionNode** | `before_sleep_time`, `end_sleep_time`, `expect_new_tab`, `max_new_tab_wait_time` |
+| **InteractionAction** | `max_tries`, `max_timeout_seconds_per_try` |
+
+## Sleep Times
+
+### before_sleep_time
+
+Time to wait **before** executing the action. Use this when you need the page to load or settle.
+
+```python
+ActionNode(
+    interaction_action=InteractionAction(
+        click_element=ClickElementAction(
+            command="""get_by_role("button", name="Submit")""",
+            prompt_instructions="Click submit",
+        )
+    ),
+    before_sleep_time=3.0,  # Wait 3 seconds before clicking
+)
+```
+
+### end_sleep_time
+
+Time to wait **after** the action completes. Use this when subsequent actions depend on the current action's effects.
+
+```python
+ActionNode(
+    interaction_action=InteractionAction(
+        click_element=ClickElementAction(
+            command="""get_by_role("button", name="Load More")""",
+            prompt_instructions="Click to load more results",
+        )
+    ),
+    end_sleep_time=2.0,  # Wait 2 seconds for results to load
+)
+```
+
+### Default Values
+
+Different action types have different defaults:
+
+| Action Type | `before_sleep_time` | `end_sleep_time` |
+|-------------|---------------------|------------------|
+| Interaction actions | `0.0` | `1.0` |
+| Extraction actions | `3.0` | `0.0` |
+| Assertion actions | `0.0` | `0.0` |
+| 2FA actions | `0.0` | `0.0` |
+
+These defaults are designed for typical use cases:
+
+- **Interactions** wait after acting (for the action's effect to take place)
+- **Extractions** wait before reading (for the page to fully load)
+- **Assertions** don't wait (they're checking the current state)
+
+### Constraints
+
+Sleep times must be between 0 and 10 seconds:
+
+```python
+before_sleep_time=0.0   # Minimum
+before_sleep_time=10.0  # Maximum
+```
+
+## Retry Configuration
+
+When element location fails, Optexity can retry. This is configured on `InteractionAction`.
+
+### max_tries
+
+Maximum number of attempts to find and interact with the element.
+
+```python
+ActionNode(
+    interaction_action=InteractionAction(
+        max_tries=10,  # Try up to 10 times
+        click_element=ClickElementAction(
+            command="""get_by_role("button", name="Submit")""",
+            prompt_instructions="Click submit",
+        )
+    )
+)
+```
+
+Default: `10`
+
+### max_timeout_seconds_per_try
+
+How long to wait for the element on each attempt.
+
+```python
+ActionNode(
+    interaction_action=InteractionAction(
+        max_tries=5,
+        max_timeout_seconds_per_try=2.0,  # Wait 2 seconds per try
+        click_element=ClickElementAction(
+            command="""get_by_role("button", name="Submit")""",
+            prompt_instructions="Click submit",
+        )
+    )
+)
+```
+
+Default: `1.0` seconds
+
+### How Retries Work
+
+1. Optexity attempts to find the element using `command` or `xpath`
+2. If not found within `max_timeout_seconds_per_try`, it retries
+3. After all `max_tries` are exhausted, the AI uses `prompt_instructions` as a fallback
+4. If the AI can't find it either, the action fails
+
+### skip_prompt Behavior
+
+When `skip_prompt=True` on an action, retries are reduced:
+
+```python
+ClickElementAction(
+    command="""get_by_role("button", name="Dismiss")""",
+    prompt_instructions="Click dismiss if visible",
+    skip_prompt=True,  # Reduces max_tries to 5
+)
+```
+
+This is useful for optional elements that might not always be present.
+
+## Handling New Tabs
+
+### expect_new_tab
+
+When an action opens a new browser tab, set `expect_new_tab=True`:
+
+```python
+ActionNode(
+    interaction_action=InteractionAction(
+        click_element=ClickElementAction(
+            command="""get_by_role("link", name="Open Report")""",
+            prompt_instructions="Click to open report in new tab",
+        )
+    ),
+    expect_new_tab=True,
+)
+```
+
+When `expect_new_tab=True`:
+
+- `max_new_tab_wait_time` is automatically set to `10.0` seconds
+- The automation waits for the new tab to open
+- Focus switches to the new tab
+
+### max_new_tab_wait_time
+
+Maximum time to wait for a new tab to appear.
+
+```python
+ActionNode(
+    interaction_action=InteractionAction(
+        click_element=ClickElementAction(
+            command="""get_by_role("button", name="Generate PDF")""",
+            prompt_instructions="Click to generate PDF in new tab",
+        )
+    ),
+    expect_new_tab=True,
+    max_new_tab_wait_time=15.0,  # Wait up to 15 seconds
+)
+```
+
+Default when `expect_new_tab=True`: `10.0` seconds
+Default when `expect_new_tab=False`: `0.0` seconds
+
+## Common Patterns
+
+### Slow-Loading Pages
+
+For pages that take time to load:
+
+```python
+ActionNode(
+    interaction_action=InteractionAction(
+        click_element=ClickElementAction(
+            command="""get_by_role("button", name="Search")""",
+            prompt_instructions="Click search",
+        )
+    ),
+    end_sleep_time=5.0,  # Wait for results to load
+),
+ActionNode(
+    extraction_action=ExtractionAction(
+        llm=LLMExtraction(...)
+    ),
+    before_sleep_time=3.0,  # Additional wait before extracting
+)
+```
+
+### AJAX/Dynamic Content
+
+For content that loads dynamically:
+
+```python
+ActionNode(
+    interaction_action=InteractionAction(
+        max_tries=15,  # More retries
+        max_timeout_seconds_per_try=1.0,
+        click_element=ClickElementAction(
+            command="""get_by_role("button", name="Load More")""",
+            prompt_instructions="Click load more when it appears",
+        )
+    ),
+    before_sleep_time=2.0,  # Wait for button to appear
+)
+```
+
+### Optional Elements
+
+For elements that may or may not be present:
+
+```python
+ActionNode(
+    interaction_action=InteractionAction(
+        max_tries=3,  # Fewer retries
+        click_element=ClickElementAction(
+            command="""get_by_role("button", name="Dismiss")""",
+            prompt_instructions="Dismiss popup if present",
+            skip_prompt=True,
+            assert_locator_presence=True,  # Skip if not found
+        )
+    )
+)
+```
+
+### After Form Submission
+
+After submitting forms that trigger server processing:
+
+```python
+# Submit the form
+ActionNode(
+    interaction_action=InteractionAction(
+        click_element=ClickElementAction(
+            command="""get_by_role("button", name="Submit")""",
+            prompt_instructions="Submit the form",
+        )
+    ),
+    end_sleep_time=3.0,  # Wait for processing
+),
+
+# Look for confirmation
+ActionNode(
+    interaction_action=InteractionAction(
+        max_tries=20,  # May take a while
+        max_timeout_seconds_per_try=1.0,
+        click_element=ClickElementAction(
+            command="""get_by_text("Confirmation")""",
+            prompt_instructions="Wait for confirmation message",
+        )
+    )
+)
+```
+
+## Timing Best Practices
+
+<CardGroup cols={2}>
+<Card title="Start Conservative" icon="clock">
+  Use longer waits initially, then optimize once it works
+</Card>
+<Card title="Use Action Defaults" icon="wand-magic-sparkles">
+  Let the defaults handle most cases
+</Card>
+<Card title="Wait Before Extraction" icon="magnifying-glass">
+  Ensure page is stable before extracting data
+</Card>
+<Card title="Wait After Navigation" icon="route">
+  Give pages time to load after clicks
+</Card>
+</CardGroup>
+
+### When to Increase Timing
+
+- Slow network connections
+- Heavy JavaScript applications
+- Server-side rendering delays
+- Form submissions that trigger processing
+- Pages with multiple AJAX calls
+
+### When to Decrease Timing
+
+- Fast, static pages
+- Well-optimized applications
+- Local development/testing
+- Time-sensitive operations
+
+## Debugging Timing Issues
+
+Signs of timing problems:
+
+| Symptom | Likely Cause | Solution |
+|---------|--------------|----------|
+| "Element not found" | Page not loaded | Increase `before_sleep_time` |
+| Clicking wrong element | Page still loading | Increase `before_sleep_time` |
+| Missing extracted data | Content not rendered | Increase `before_sleep_time` on extraction |
+| Next action fails | Previous action effect not ready | Increase `end_sleep_time` |
+| Random failures | Race conditions | Increase retries and timeouts |
+
+## Next Steps
+
+- Learn about [Agentic Tasks](/docs/agentic-tasks) for handling unpredictable pages
+- See [Best Practices](/docs/best-practices) for more reliability tips
+- Check [Interaction Actions](/docs/interaction-actions) for action-specific timing
+

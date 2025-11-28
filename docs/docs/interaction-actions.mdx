@@ -1,0 +1,455 @@
+---
+title: Interaction Actions
+description: Clicking, typing, and navigating web pages
+---
+
+Interaction actions are the most common action type in Optexity. They represent user interactions with the browser: clicking buttons, filling forms, navigating pages, and more.
+
+## Overview
+
+Every interaction action is wrapped in an `InteractionAction` container:
+
+```python
+from optexity.schema.actions.interaction_action import (
+    InteractionAction,
+    ClickElementAction,
+)
+from optexity.schema.automation import ActionNode
+
+node = ActionNode(
+    interaction_action=InteractionAction(
+        click_element=ClickElementAction(
+            command="""get_by_role("button", name="Submit")""",
+            prompt_instructions="Click the submit button",
+        )
+    )
+)
+```
+
+An `InteractionAction` contains exactly one of the following action types:
+
+| Action | Purpose |
+|--------|---------|
+| `click_element` | Click on an element |
+| `input_text` | Type text into a field |
+| `select_option` | Select from a dropdown |
+| `check` | Check/uncheck a checkbox |
+| `scroll` | Scroll the page |
+| `go_to_url` | Navigate to a URL |
+| `go_back` | Go back in browser history |
+| `switch_tab` | Switch to a different tab |
+| `close_current_tab` | Close the current tab |
+| `close_all_but_last_tab` | Close all tabs except the last |
+| `upload_file` | Upload a file |
+| `download_url_as_pdf` | Download current page as PDF |
+| `agentic_task` | AI agent for complex interactions |
+| `close_overlay_popup` | Dismiss popups and modals |
+
+## Click Element
+
+The most common interaction—clicking buttons, links, and other elements.
+
+```python
+from optexity.schema.actions.interaction_action import (
+    InteractionAction,
+    ClickElementAction,
+)
+
+# Basic click
+ActionNode(
+    interaction_action=InteractionAction(
+        click_element=ClickElementAction(
+            command="""get_by_role("button", name="Submit")""",
+            prompt_instructions="Click the submit button",
+        )
+    )
+)
+
+# Double click
+ActionNode(
+    interaction_action=InteractionAction(
+        click_element=ClickElementAction(
+            command="""get_by_role("row", name="Item 1")""",
+            prompt_instructions="Double click the first row",
+            double_click=True,
+        )
+    )
+)
+
+# Click that triggers download
+ActionNode(
+    interaction_action=InteractionAction(
+        click_element=ClickElementAction(
+            command="""get_by_role("button", name="Export")""",
+            prompt_instructions="Click the export button",
+            expect_download=True,
+            download_filename="report.pdf",
+        )
+    )
+)
+```
+
+### Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `command` | `str \| None` | `None` | Playwright locator command |
+| `xpath` | `str \| None` | `None` | XPath selector (alternative to command) |
+| `prompt_instructions` | `str` | Required | Description for AI fallback |
+| `double_click` | `bool` | `False` | Perform double-click instead of single |
+| `expect_download` | `bool` | `False` | Whether click triggers a file download |
+| `download_filename` | `str \| None` | Auto-generated | Filename for downloaded file |
+| `skip_prompt` | `bool` | `False` | Skip AI prompt if locator fails |
+| `assert_locator_presence` | `bool` | `False` | Only act if element exists |
+
+## Input Text
+
+Enter text into input fields, textareas, or other editable elements.
+
+```python
+from optexity.schema.actions.interaction_action import (
+    InteractionAction,
+    InputTextAction,
+)
+
+# Basic text input
+ActionNode(
+    interaction_action=InteractionAction(
+        input_text=InputTextAction(
+            command="""get_by_label("Email")""",
+            input_text="{email[0]}",
+            prompt_instructions="Enter the email address",
+        )
+    )
+)
+
+# Using type instead of fill (for character-by-character input)
+ActionNode(
+    interaction_action=InteractionAction(
+        input_text=InputTextAction(
+            command="""get_by_label("Search")""",
+            input_text="laptop computers",
+            prompt_instructions="Type the search query",
+            fill_or_type="type",  # Types each character
+        )
+    )
+)
+
+# Slider input
+ActionNode(
+    interaction_action=InteractionAction(
+        input_text=InputTextAction(
+            command="""get_by_role("slider", name="Price")""",
+            input_text="500",
+            prompt_instructions="Set the price slider to 500",
+            is_slider=True,
+        )
+    )
+)
+```
+
+### Fill vs Type
+
+| Mode | Behavior | Use When |
+|------|----------|----------|
+| `fill` (default) | Sets value instantly | Standard form fields |
+| `type` | Types each character | Autocomplete fields, search boxes with suggestions |
+
+### Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `command` | `str \| None` | `None` | Playwright locator command |
+| `xpath` | `str \| None` | `None` | XPath selector |
+| `prompt_instructions` | `str` | Required | Description for AI fallback |
+| `input_text` | `str \| None` | `None` | Text to enter (supports variable substitution) |
+| `fill_or_type` | `"fill" \| "type"` | `"fill"` | How to enter the text |
+| `is_slider` | `bool` | `False` | Whether element is a slider |
+
+## Select Option
+
+Select values from dropdown menus.
+
+```python
+from optexity.schema.actions.interaction_action import (
+    InteractionAction,
+    SelectOptionAction,
+)
+
+# Select single option
+ActionNode(
+    interaction_action=InteractionAction(
+        select_option=SelectOptionAction(
+            command="""get_by_label("Country")""",
+            select_values=["United States"],
+            prompt_instructions="Select United States from the country dropdown",
+        )
+    )
+)
+
+# Select using variable
+ActionNode(
+    interaction_action=InteractionAction(
+        select_option=SelectOptionAction(
+            command="""get_by_label("Plan Type")""",
+            select_values=["{plan_type[0]}"],
+            prompt_instructions="Select the plan type",
+        )
+    )
+)
+
+# Select that triggers download
+ActionNode(
+    interaction_action=InteractionAction(
+        select_option=SelectOptionAction(
+            command="""get_by_label("Export Format")""",
+            select_values=["CSV"],
+            prompt_instructions="Select CSV export",
+            expect_download=True,
+            download_filename="data.csv",
+        )
+    )
+)
+```
+
+### Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `command` | `str \| None` | `None` | Playwright locator command |
+| `xpath` | `str \| None` | `None` | XPath selector |
+| `prompt_instructions` | `str` | Required | Description for AI fallback |
+| `select_values` | `list[str]` | Required | Values to select |
+| `expect_download` | `bool` | `False` | Whether selection triggers download |
+| `download_filename` | `str \| None` | Auto-generated | Filename for download |
+
+## Check (Checkbox/Radio)
+
+Check or uncheck checkboxes and radio buttons.
+
+```python
+from optexity.schema.actions.interaction_action import (
+    InteractionAction,
+    CheckAction,
+)
+
+ActionNode(
+    interaction_action=InteractionAction(
+        check=CheckAction(
+            command="""get_by_label("I agree to the terms")""",
+            prompt_instructions="Check the terms agreement checkbox",
+        )
+    )
+)
+```
+
+## Scroll
+
+Scroll the page up or down.
+
+```python
+from optexity.schema.actions.interaction_action import (
+    InteractionAction,
+    ScrollAction,
+)
+
+# Scroll down
+ActionNode(
+    interaction_action=InteractionAction(
+        scroll=ScrollAction(down=True)
+    )
+)
+
+# Scroll up
+ActionNode(
+    interaction_action=InteractionAction(
+        scroll=ScrollAction(down=False)
+    )
+)
+```
+
+## Navigation Actions
+
+### Go to URL
+
+Navigate to a specific URL.
+
+```python
+from optexity.schema.actions.interaction_action import (
+    InteractionAction,
+    GoToUrlAction,
+)
+
+# Navigate in current tab
+ActionNode(
+    interaction_action=InteractionAction(
+        go_to_url=GoToUrlAction(
+            url="https://example.com/dashboard",
+        )
+    )
+)
+
+# Open in new tab
+ActionNode(
+    interaction_action=InteractionAction(
+        go_to_url=GoToUrlAction(
+            url="https://example.com/settings",
+            new_tab=True,
+        )
+    )
+)
+```
+
+### Go Back
+
+Navigate back in browser history.
+
+```python
+from optexity.schema.actions.interaction_action import (
+    InteractionAction,
+    GoBackAction,
+)
+
+ActionNode(
+    interaction_action=InteractionAction(
+        go_back=GoBackAction()
+    )
+)
+```
+
+### Switch Tab
+
+Switch to a different browser tab by index.
+
+```python
+from optexity.schema.actions.interaction_action import (
+    InteractionAction,
+    SwitchTabAction,
+)
+
+ActionNode(
+    interaction_action=InteractionAction(
+        switch_tab=SwitchTabAction(tab_index=0)  # Switch to first tab
+    )
+)
+```
+
+### Close Tabs
+
+```python
+from optexity.schema.actions.interaction_action import (
+    InteractionAction,
+    CloseCurrentTabAction,
+    CloseAllButLastTabAction,
+)
+
+# Close current tab
+ActionNode(
+    interaction_action=InteractionAction(
+        close_current_tab=CloseCurrentTabAction()
+    )
+)
+
+# Close all tabs except the last one
+ActionNode(
+    interaction_action=InteractionAction(
+        close_all_but_last_tab=CloseAllButLastTabAction()
+    )
+)
+```
+
+## File Operations
+
+### Upload File
+
+```python
+from optexity.schema.actions.interaction_action import (
+    InteractionAction,
+    UploadFileAction,
+)
+
+ActionNode(
+    interaction_action=InteractionAction(
+        upload_file=UploadFileAction(
+            command="""get_by_label("Upload Document")""",
+            file_path="/path/to/document.pdf",
+            prompt_instructions="Upload the document",
+        )
+    )
+)
+```
+
+### Download Page as PDF
+
+Download the current page content as a PDF file.
+
+```python
+from optexity.schema.actions.interaction_action import (
+    InteractionAction,
+    DownloadUrlAsPdfAction,
+)
+
+ActionNode(
+    interaction_action=InteractionAction(
+        download_url_as_pdf=DownloadUrlAsPdfAction(
+            download_filename="page_snapshot.pdf"
+        )
+    )
+)
+```
+
+## Handling New Tabs
+
+When an action opens a new tab, use `expect_new_tab`:
+
+```python
+ActionNode(
+    interaction_action=InteractionAction(
+        click_element=ClickElementAction(
+            command="""get_by_role("button", name="Open Details")""",
+            prompt_instructions="Click to open details in new tab",
+        )
+    ),
+    expect_new_tab=True,  # Automation will wait for and switch to new tab
+)
+```
+
+## 2FA Timer
+
+Start a 2FA timer when clicking a button that triggers 2FA:
+
+```python
+ActionNode(
+    interaction_action=InteractionAction(
+        click_element=ClickElementAction(
+            command="""get_by_role("button", name="Sign In")""",
+            prompt_instructions="Click sign in to trigger 2FA",
+        ),
+        start_2fa_timer=True,  # Starts timer for subsequent 2FA fetch
+    )
+)
+```
+
+## Retry Configuration
+
+Control how many times Optexity retries finding an element:
+
+```python
+ActionNode(
+    interaction_action=InteractionAction(
+        max_tries=5,  # Retry up to 5 times
+        max_timeout_seconds_per_try=2.0,  # Wait 2 seconds per try
+        click_element=ClickElementAction(
+            command="""get_by_role("button", name="Submit")""",
+            prompt_instructions="Click submit",
+        )
+    )
+)
+```
+
+## Next Steps
+
+- Learn about [Extraction Actions](/docs/extraction-actions) to capture data
+- See [Timing & Retries](/docs/timing-retries) for execution control
+- Explore [Agentic Tasks](/docs/agentic-tasks) for complex interactions
+

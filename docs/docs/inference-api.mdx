@@ -50,6 +50,7 @@ Defined in `optexity/schema/inference.py`:
 - **`unique_parameter_names: list[str]`**
   - Subset of keys from `input_parameters` used to identify a unique task.
   - Validation ensures every name in `unique_parameter_names` exists as a key in `input_parameters`.
+  - If no `unique_parameter_names` are provided, the task will be allocated immediately.
 
 ### `Task`
 

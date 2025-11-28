@@ -1,0 +1,190 @@
+---
+title: Inference Endpoint
+description: Submit automation tasks to the inference server
+---
+
+The `/inference` endpoint is the primary way to submit automation tasks to an Optexity inference server.
+
+## POST /inference
+
+Submit an automation task for execution.
+
+### Request
+
+```bash
+POST http://localhost:9000/inference
+Content-Type: application/json
+```
+
+### Request Body
+
+```json
+{
+  "endpoint_name": "login-flow",
+  "input_parameters": {
+    "email": ["user@example.com"],
+    "password": ["secret123"]
+  },
+  "unique_parameter_names": ["email"]
+}
+```
+
+### Schema: InferenceRequest
+
+<ParamField path="endpoint_name" type="str" required>
+  Name of the automation endpoint to execute. Must match a recording/automation configured in the Optexity control plane.
+</ParamField>
+
+<ParamField path="input_parameters" type="dict[str, list[str]]" required>
+  Input values for the automation. Keys are parameter names, values are lists of strings.
+  
+  Every parameter defined in the automation's `input_parameters` should be provided here.
+</ParamField>
+
+<ParamField path="unique_parameter_names" type="list[str]" required>
+  Subset of keys from `input_parameters` that uniquely identify this task. Used for deduplication.
+  
+  Every name in this list must exist as a key in `input_parameters`.
+</ParamField>
+
+### Response
+
+#### Success (202 Accepted)
+
+```json
+{
+  "success": true,
+  "message": "Task has been allocated"
+}
+```
+
+The task has been enqueued and will execute asynchronously.
+
+#### Error (4xx/5xx)
+
+```json
+{
+  "success": false,
+  "message": "Error description"
+}
+```
+
+### Example Request
+
+```bash
+curl -X POST http://localhost:9000/inference \
+  -H "Content-Type: application/json" \
+  -d '{
+    "endpoint_name": "order-scraper",
+    "input_parameters": {
+      "username": ["admin@company.com"],
+      "password": ["secretpassword"],
+      "date_range": ["last-30-days"]
+    },
+    "unique_parameter_names": ["username", "date_range"]
+  }'
+```
+
+### How It Works
+
+1. The inference server receives the `InferenceRequest`
+2. It forwards the request to the Optexity control plane at `api.optexity.com`
+3. The control plane returns a serialized `Task` object containing the full automation definition
+4. The task is enqueued locally for background execution
+5. A `202 Accepted` response is returned immediately
+6. The browser automation executes asynchronously
+
+### Task Object
+
+The control plane returns a `Task` with this structure:
+
+```python
+class Task:
+    task_id: str                          # Unique identifier
+    user_id: str                          # Owner of the task
+    recording_id: str                     # Source automation ID
+    automation: Automation                # Full automation definition
+    input_parameters: dict[str, list[str]]
+    unique_parameter_names: list[str]
+    unique_parameters: dict[str, list[str]] | None
+    
+    # Lifecycle
+    created_at: datetime
+    allocated_at: datetime | None
+    started_at: datetime | None
+    completed_at: datetime | None
+    status: "queued" | "allocated" | "running" | "success" | "failed" | "cancelled"
+    error: str | None
+    
+    # Retry configuration
+    retry_count: int = 0
+    max_retries: int = 1
+    
+    # Storage paths
+    save_directory: Path
+    task_directory: Path | None
+    logs_directory: Path | None
+    downloads_directory: Path | None
+    log_file_path: Path | None
+    
+    # Deduplication
+    dedup_key: str
+    
+    # Authentication
+    api_key: str
+```
+
+### Validation
+
+The endpoint validates:
+
+1. All `unique_parameter_names` exist in `input_parameters`
+2. All parameter values are lists of strings
+3. The `endpoint_name` matches a valid automation
+
+### Error Cases
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| Missing parameter | `unique_parameter_names` contains key not in `input_parameters` | Add the key to `input_parameters` |
+| Invalid endpoint | `endpoint_name` doesn't match any automation | Check the endpoint name |
+| Control plane error | Network issue or invalid API key | Check `API_KEY` and network |
+
+### Configuration
+
+The endpoint uses these settings from `ENV_PATH`:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `API_KEY` | Required | API key for control plane authentication |
+| `INFERENCE_ENDPOINT` | `api/v1/inference` | Control plane endpoint path |
+
+### Python Example
+
+```python
+import requests
+
+response = requests.post(
+    "http://localhost:9000/inference",
+    json={
+        "endpoint_name": "login-flow",
+        "input_parameters": {
+            "email": ["user@example.com"],
+            "password": ["secret123"],
+        },
+        "unique_parameter_names": ["email"],
+    },
+)
+
+if response.status_code == 202:
+    print("Task submitted successfully")
+else:
+    print(f"Error: {response.json()}")
+```
+
+## Related
+
+- [Health Endpoints](/api-reference/health-endpoints) - Monitor task status
+- [Getting Started Guide](/docs/getting-started) - Server setup
+- [Automation Schema](/api-reference/automation-schema) - Task definition
+

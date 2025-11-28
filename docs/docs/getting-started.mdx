@@ -60,9 +60,9 @@ With the server running on `http://localhost:9000`, you can allocate a task by s
 
 `InferenceRequest` (from `optexity/schema/inference.py`) has this shape:
 
-- **`endpoint_name`**: Name of the automation endpoint to execute. This must match a recording/automation defined in your Optexity backend.
-- **`input_parameters`**: `dict[str, list[str]]` – all input values for the automation, as lists of strings.
-- **`unique_parameter_names`**: `list[str]` – subset of keys from `input_parameters` that uniquely identify this task (used for deduplication and validation).
+- **`endpoint_name`**: Name of the automation endpoint to execute. This must match a recording/automation defined in the Optexity dashboard.
+- **`input_parameters`**: `dict[str, list[str]]` – all input values for the automation, as lists of strings. 
+- **`unique_parameter_names`**: `list[str]` – subset of keys from `input_parameters` that uniquely identify this task (used for deduplication and validation). Only one task with the same `unique_parameter_names` will be allocated. If no `unique_parameter_names` are provided, the task will be allocated immediately.
 
 A minimal JSON example:
 

@@ -1,0 +1,507 @@
+---
+title: Best Practices
+description: Tips for building reliable and maintainable automations
+---
+
+Building robust browser automations requires thoughtful design. This guide covers best practices learned from real-world Optexity deployments.
+
+## Automation Design
+
+### Start Simple, Then Iterate
+
+Begin with the minimum viable automation:
+
+```python
+# First version: just the core flow
+nodes=[
+    ActionNode(interaction_action=InteractionAction(
+        click_element=ClickElementAction(
+            command="""get_by_role("button", name="Login")""",
+            prompt_instructions="Click login",
+        )
+    )),
+    # ... minimal steps
+]
+```
+
+Then add complexity as needed:
+- Error handling
+- Optional steps
+- Extraction actions
+- Loops for multiple items
+
+### Use Meaningful Names
+
+For parameters and variables:
+
+```python
+# Good
+input_parameters={
+    "patient_date_of_birth": ["01/15/1990"],
+    "authorization_number": ["AUTH-12345"],
+}
+
+# Avoid
+input_parameters={
+    "dob": ["01/15/1990"],
+    "num": ["AUTH-12345"],
+}
+```
+
+### Document Complex Logic
+
+Add comments to explain non-obvious steps:
+
+```python
+# Wait for the dynamic table to load after search
+ActionNode(
+    before_sleep_time=5.0,
+    extraction_action=ExtractionAction(...)
+),
+
+# Handle the optional security question (may not appear)
+ActionNode(
+    interaction_action=InteractionAction(
+        click_element=ClickElementAction(
+            prompt_instructions="Answer security question if present",
+            skip_prompt=True,
+            assert_locator_presence=True,
+        )
+    )
+),
+```
+
+## Locator Strategy
+
+### Prefer Role-Based Locators
+
+Role-based locators are the most resilient:
+
+```python
+# Best: Role + accessible name
+command="""get_by_role("button", name="Submit Order")"""
+
+# Good: Label association
+command="""get_by_label("Email Address")"""
+
+# Okay: Test IDs (if available)
+command="""get_by_test_id("submit-btn")"""
+
+# Last resort: CSS/XPath
+command="""locator("#submit-form-btn")"""
+```
+
+### Always Provide prompt_instructions
+
+Even with reliable locators, always provide a fallback:
+
+```python
+ClickElementAction(
+    command="""get_by_role("button", name="Continue")""",
+    prompt_instructions="Click the green Continue button at the bottom of the form",  # Rich context
+)
+```
+
+### Handle Dynamic IDs
+
+Never rely on dynamic IDs:
+
+```python
+# Bad: ID changes every page load
+command="""locator("#btn_12345_submit")"""
+
+# Good: Use stable attributes
+command="""get_by_role("button", name="Submit")"""
+command="""locator("[data-action='submit']")"""
+```
+
+## When to Use Extraction
+
+### Extract Before Acting on Dynamic Content
+
+```python
+# First: Extract the items
+ActionNode(
+    extraction_action=ExtractionAction(
+        llm=LLMExtraction(
+            extraction_format={"item_ids": "List[str]"},
+            output_variable_names=["item_ids"],
+            extraction_instructions="Extract all item IDs from the list",
+            source=["axtree"],
+        )
+    )
+),
+
+# Then: Act on them
+ForLoopNode(
+    variable_name="item_ids",
+    nodes=[...],
+),
+```
+
+### Extract for Validation
+
+Use extraction to verify state:
+
+```python
+# After form submission
+ActionNode(
+    extraction_action=ExtractionAction(
+        llm=LLMExtraction(
+            extraction_format={
+                "confirmation_number": "str",
+                "status": "str",
+            },
+            extraction_instructions="Extract the confirmation number and status message",
+            source=["axtree"],
+        )
+    )
+),
+```
+
+### Choose the Right Source
+
+| Scenario | Source |
+|----------|--------|
+| Tables, forms, text content | `["axtree"]` |
+| Visual layouts, images | `["screenshot"]` |
+| Complex pages | `["axtree", "screenshot"]` |
+
+## Timing Best Practices
+
+### Wait Before Extraction
+
+Pages need time to load:
+
+```python
+ActionNode(
+    extraction_action=ExtractionAction(...),
+    before_sleep_time=3.0,  # Default, but explicit is good
+)
+```
+
+### Wait After Navigation
+
+Give pages time to render:
+
+```python
+ActionNode(
+    interaction_action=InteractionAction(
+        click_element=ClickElementAction(
+            command="""get_by_role("link", name="Dashboard")""",
+            prompt_instructions="Navigate to dashboard",
+        )
+    ),
+    end_sleep_time=2.0,
+),
+```
+
+### Use Retries for Dynamic Elements
+
+For elements that appear after JavaScript loads:
+
+```python
+ActionNode(
+    interaction_action=InteractionAction(
+        max_tries=15,
+        max_timeout_seconds_per_try=1.0,
+        click_element=ClickElementAction(
+            command="""get_by_text("Results loaded")""",
+            prompt_instructions="Wait for results to load",
+        )
+    )
+),
+```
+
+## Error Handling
+
+### Handle Optional Elements
+
+Use `assert_locator_presence` for elements that may not appear:
+
+```python
+# Dismiss cookie banner if present
+ActionNode(
+    interaction_action=InteractionAction(
+        click_element=ClickElementAction(
+            command="""get_by_role("button", name="Accept Cookies")""",
+            prompt_instructions="Accept cookies if banner appears",
+            assert_locator_presence=True,  # Skip if not found
+        )
+    )
+),
+```
+
+### Use skip_prompt for Known Optional Steps
+
+```python
+# This step is optional in the workflow
+ActionNode(
+    interaction_action=InteractionAction(
+        click_element=ClickElementAction(
+            command="""get_by_role("button", name="Skip Tutorial")""",
+            prompt_instructions="Skip tutorial if shown",
+            skip_prompt=True,  # Don't use AI fallback
+            assert_locator_presence=True,
+        )
+    )
+),
+```
+
+### Handle Multiple Paths
+
+Structure automations to handle variations:
+
+```python
+# Try the primary button
+ActionNode(
+    interaction_action=InteractionAction(
+        click_element=ClickElementAction(
+            command="""get_by_role("button", name="Continue")""",
+            prompt_instructions="Click Continue to proceed",
+        )
+    )
+),
+
+# Some flows show a different button
+ActionNode(
+    interaction_action=InteractionAction(
+        click_element=ClickElementAction(
+            command="""get_by_role("button", name="Next")""",
+            prompt_instructions="Click Next if Continue wasn't found",
+            skip_prompt=True,
+            assert_locator_presence=True,
+        )
+    )
+),
+```
+
+## Security Best Practices
+
+### Never Hardcode Credentials
+
+```python
+# Bad
+input_parameters={
+    "password": ["actualpassword123"],
+}
+
+# Good: Pass at runtime via API
+input_parameters={
+    "password": [],  # Populated by InferenceRequest
+}
+```
+
+### Protect Sensitive Data
+
+- Use environment variables for API keys
+- Store credentials securely
+- Avoid logging sensitive values
+
+## Performance Tips
+
+### Minimize Unnecessary Waits
+
+```python
+# Remove excessive waits once stable
+ActionNode(
+    interaction_action=InteractionAction(...),
+    before_sleep_time=0.0,  # Only wait if needed
+    end_sleep_time=0.5,     # Minimal wait
+),
+```
+
+### Use Static Actions Over Agentic
+
+Agentic tasks are powerful but slower:
+
+```python
+# Prefer this for known elements
+ClickElementAction(
+    command="""get_by_role("button", name="Submit")""",
+    prompt_instructions="Click submit",
+)
+
+# Use agentic only for unpredictable UI
+AgenticTask(
+    task="Handle CAPTCHA if present",
+    max_steps=5,
+    ...
+)
+```
+
+### Batch Extractions
+
+Extract multiple fields at once:
+
+```python
+# Good: One extraction call
+LLMExtraction(
+    extraction_format={
+        "name": "str",
+        "email": "str",
+        "phone": "str",
+        "address": "str",
+    },
+    extraction_instructions="Extract all contact information",
+)
+
+# Avoid: Multiple separate extractions
+# LLMExtraction(extraction_format={"name": "str"}, ...)
+# LLMExtraction(extraction_format={"email": "str"}, ...)
+```
+
+## Debugging Tips
+
+### Check Locators First
+
+When actions fail:
+
+1. Verify the element exists on the page
+2. Test the locator in browser DevTools
+3. Check if the element is inside an iframe
+4. Look for dynamic class/ID changes
+
+### Review Timing
+
+Common timing issues:
+
+| Symptom | Solution |
+|---------|----------|
+| "Element not found" | Increase `before_sleep_time` |
+| Wrong element clicked | Wait for page to settle |
+| Extraction returns empty | Increase wait before extraction |
+| Random failures | Increase retry count |
+
+### Use Screenshots for Debugging
+
+Add screenshot extractions to capture state:
+
+```python
+ActionNode(
+    extraction_action=ExtractionAction(
+        screenshot=ScreenshotExtraction(
+            filename="debug_before_submit.png",
+            full_page=True,
+        )
+    )
+),
+```
+
+### Start with Verbose Logging
+
+During development, add extraction steps to see page state:
+
+```python
+ActionNode(
+    extraction_action=ExtractionAction(
+        llm=LLMExtraction(
+            source=["axtree"],
+            extraction_format={"page_state": "str"},
+            extraction_instructions="Describe what's on the current page",
+        )
+    )
+),
+```
+
+## Common Patterns
+
+### Login Flow
+
+```python
+# Enter credentials
+ActionNode(interaction_action=InteractionAction(
+    input_text=InputTextAction(
+        command="""get_by_label("Email")""",
+        input_text="{email[0]}",
+        prompt_instructions="Enter email",
+    )
+)),
+ActionNode(interaction_action=InteractionAction(
+    input_text=InputTextAction(
+        command="""get_by_label("Password")""",
+        input_text="{password[0]}",
+        prompt_instructions="Enter password",
+    )
+)),
+ActionNode(interaction_action=InteractionAction(
+    click_element=ClickElementAction(
+        command="""get_by_role("button", name="Sign In")""",
+        prompt_instructions="Click sign in",
+    )
+)),
+# Wait for dashboard
+ActionNode(
+    before_sleep_time=3.0,
+    extraction_action=ExtractionAction(
+        llm=LLMExtraction(
+            extraction_format={"logged_in": "str"},
+            extraction_instructions="Confirm we're logged in by looking for dashboard elements",
+            source=["axtree"],
+        )
+    )
+),
+```
+
+### Search and Process Results
+
+```python
+# Search
+ActionNode(interaction_action=InteractionAction(
+    input_text=InputTextAction(
+        command="""get_by_role("searchbox")""",
+        input_text="{query[0]}",
+        prompt_instructions="Enter search query",
+    )
+)),
+ActionNode(interaction_action=InteractionAction(
+    click_element=ClickElementAction(
+        command="""get_by_role("button", name="Search")""",
+        prompt_instructions="Click search",
+    )
+)),
+
+# Wait and extract results
+ActionNode(
+    before_sleep_time=3.0,
+    extraction_action=ExtractionAction(
+        llm=LLMExtraction(
+            extraction_format={"result_ids": "List[str]"},
+            output_variable_names=["result_ids"],
+            extraction_instructions="Extract all result IDs",
+            source=["axtree"],
+        )
+    )
+),
+
+# Process each result
+ForLoopNode(
+    variable_name="result_ids",
+    nodes=[
+        ActionNode(interaction_action=InteractionAction(
+            click_element=ClickElementAction(
+                command="""get_by_text("{result_ids[index]}")""",
+                prompt_instructions="Click result {result_ids[index]}",
+            )
+        )),
+        # Extract details...
+        ActionNode(interaction_action=InteractionAction(
+            go_back=GoBackAction()
+        )),
+    ],
+),
+```
+
+## Checklist
+
+Before deploying an automation:
+
+- [ ] All locators have `prompt_instructions`
+- [ ] Sensitive data passed via parameters, not hardcoded
+- [ ] Appropriate wait times for page loads
+- [ ] Optional elements handled with `assert_locator_presence`
+- [ ] Error cases considered
+- [ ] Tested on realistic data
+- [ ] Variable names are descriptive
+- [ ] Complex logic is commented
+

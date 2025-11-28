@@ -1,0 +1,258 @@
+---
+title: Core Concepts
+description: Understanding Optexity's automation model
+---
+
+Optexity uses a declarative model for browser automation. Instead of writing imperative scripts, you define **what** actions to perform, and Optexity handles the **how** using AI-assisted element location and robust execution.
+
+## The Automation Model
+
+Every Optexity automation consists of three main components:
+
+```
+Automation
+├── url           # Starting point
+├── parameters    # Input and generated variables
+└── nodes[]       # Sequence of actions
+    ├── ActionNode
+    ├── ForLoopNode
+    └── IfElseNode
+```
+
+## Automation
+
+The `Automation` class is the top-level container for your workflow.
+
+```python
+from optexity.schema.automation import Automation, Parameters
+
+automation = Automation(
+    url="https://example.com/login",
+    parameters=Parameters(
+        input_parameters={
+            "email": ["user@example.com"],
+        },
+        generated_parameters={},
+    ),
+    nodes=[
+        # ActionNodes go here
+    ],
+)
+```
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `url` | `str` | The starting URL where the browser navigates first |
+| `parameters` | `Parameters` | Container for input and generated variables |
+| `nodes` | `list[ActionNode \| ForLoopNode \| IfElseNode]` | Ordered list of actions to execute |
+
+## Parameters
+
+Parameters define the data flowing through your automation. They're divided into two categories:
+
+### Input Parameters
+
+Values you provide before execution starts. Think of these as the "inputs" to your automation:
+
+```python
+input_parameters={
+    "username": ["john@example.com"],
+    "password": ["secret123"],
+    "search_query": ["laptop", "monitor"],  # Multiple values for loops
+}
+```
+
+### Generated Parameters
+
+Values extracted during execution. These are populated by extraction actions and can be used in subsequent steps:
+
+```python
+generated_parameters={
+    "order_id": [],      # Will be populated during execution
+    "confirmation": [],
+}
+```
+
+### Accessing Parameters
+
+Use the `{variable_name[index]}` syntax to reference parameter values:
+
+```python
+# Access first value
+input_text="{username[0]}"
+
+# Access second value
+input_text="{search_query[1]}"
+
+# In loops, use {variable_name[index]} where index iterates
+prompt_instructions="Click on order {order_id[index]}"
+```
+
+## ActionNode
+
+An `ActionNode` represents a single atomic action in your automation. Each node must contain exactly one action type.
+
+```python
+from optexity.schema.automation import ActionNode
+from optexity.schema.actions.interaction_action import (
+    InteractionAction,
+    ClickElementAction,
+)
+
+node = ActionNode(
+    interaction_action=InteractionAction(
+        click_element=ClickElementAction(
+            command="""get_by_role("button", name="Submit")""",
+            prompt_instructions="Click the submit button",
+        )
+    ),
+    before_sleep_time=0.0,
+    end_sleep_time=1.0,
+    expect_new_tab=False,
+)
+```
+
+### Action Types
+
+Each ActionNode can contain exactly one of these action types:
+
+| Action Type | Purpose |
+|-------------|---------|
+| `interaction_action` | User interactions: click, type, select, scroll, navigate |
+| `extraction_action` | Data extraction: LLM-based, network calls, screenshots |
+| `assertion_action` | Verify conditions on the page |
+| `python_script_action` | Execute custom Python code |
+| `fetch_2fa_action` | Handle two-factor authentication codes |
+
+### Timing Properties
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `before_sleep_time` | `float` | `0.0` (or `3.0` for extractions) | Seconds to wait before executing the action |
+| `end_sleep_time` | `float` | `1.0` (or `0.0` for extractions/assertions) | Seconds to wait after the action completes |
+| `expect_new_tab` | `bool` | `False` | Whether this action opens a new tab |
+| `max_new_tab_wait_time` | `float` | `0.0` (or `10.0` if `expect_new_tab=True`) | Max seconds to wait for new tab |
+
+## ForLoopNode
+
+Use `ForLoopNode` to iterate over extracted data. This is powerful for processing lists of items, like clicking through search results or processing multiple records.
+
+```python
+from optexity.schema.automation import ForLoopNode, ActionNode
+
+loop = ForLoopNode(
+    variable_name="order_ids",
+    nodes=[
+        ActionNode(
+            interaction_action=InteractionAction(
+                click_element=ClickElementAction(
+                    command="""get_by_role("link", name="{order_ids[index]}")""",
+                    prompt_instructions="Click order {order_ids[index]}",
+                )
+            )
+        ),
+        # More actions for each iteration...
+    ],
+)
+```
+
+The loop iterates over all values in the specified variable. Inside the loop, use `{variable_name[index]}` to access the current iteration's value.
+
+### How It Works
+
+1. Before the loop, an extraction action populates `order_ids` with values like `["ORD-001", "ORD-002", "ORD-003"]`
+2. The loop runs 3 times, once for each order ID
+3. On each iteration, `{order_ids[index]}` is replaced with the current value
+
+## IfElseNode
+
+Use `IfElseNode` for conditional execution based on a condition string.
+
+```python
+from optexity.schema.automation import IfElseNode, ActionNode
+
+conditional = IfElseNode(
+    condition="has_captcha",
+    if_nodes=[
+        # Actions to execute if condition is true
+        ActionNode(...)
+    ],
+    else_nodes=[
+        # Actions to execute if condition is false
+        ActionNode(...)
+    ],
+)
+```
+
+## Variables and Memory
+
+During execution, Optexity maintains a memory system that tracks:
+
+- **Input Variables**: The `input_parameters` you provided
+- **Generated Variables**: Values extracted during execution
+- **Output Data**: Structured data extracted from pages
+- **Browser State**: Current URL, page content, screenshots
+
+### Variable Flow Example
+
+```python
+# 1. Start with input parameters
+parameters=Parameters(
+    input_parameters={"search_term": ["laptop"]},
+    generated_parameters={"product_ids": []},
+)
+
+# 2. Use input parameters in actions
+ActionNode(
+    interaction_action=InteractionAction(
+        input_text=InputTextAction(
+            input_text="{search_term[0]}",  # Uses "laptop"
+            ...
+        )
+    )
+)
+
+# 3. Extract data into generated parameters
+ActionNode(
+    extraction_action=ExtractionAction(
+        llm=LLMExtraction(
+            extraction_format={"product_ids": "List[str]"},
+            output_variable_names=["product_ids"],
+            ...
+        )
+    )
+)
+
+# 4. Use generated parameters in subsequent actions
+ForLoopNode(
+    variable_name="product_ids",
+    nodes=[
+        ActionNode(
+            interaction_action=InteractionAction(
+                click_element=ClickElementAction(
+                    prompt_instructions="Click product {product_ids[index]}",
+                    ...
+                )
+            )
+        )
+    ],
+)
+```
+
+## Execution Model
+
+Optexity executes automations with these guarantees:
+
+1. **Sequential Execution**: Nodes execute in order, one at a time
+2. **Retry Logic**: Failed actions retry up to `max_tries` times
+3. **AI Fallback**: If a locator fails, the LLM uses `prompt_instructions` to find the element
+4. **State Tracking**: Each step's browser state is recorded for debugging
+
+## Next Steps
+
+- Learn about [Locators](/docs/locators) for finding elements
+- Explore [Parameters and Variables](/docs/parameters-variables) in depth
+- See all [Interaction Actions](/docs/interaction-actions) available
+

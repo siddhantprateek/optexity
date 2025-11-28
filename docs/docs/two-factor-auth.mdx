@@ -1,0 +1,370 @@
+---
+title: Two-Factor Authentication
+description: Handling 2FA codes in automations
+---
+
+Many websites require two-factor authentication (2FA). Optexity provides built-in support for fetching 2FA codes from various sources and using them in your automations.
+
+## Overview
+
+Optexity supports three methods for fetching 2FA codes:
+
+| Method | Source | Use Case |
+|--------|--------|----------|
+| **Email 2FA** | Gmail inbox | Codes sent via email |
+| **TOTP 2FA** | Authenticator apps | Time-based one-time passwords |
+| **API 2FA** | Custom API endpoint | Third-party 2FA services |
+
+## The 2FA Flow
+
+A typical 2FA automation involves:
+
+1. **Start the timer** - Click a button that triggers 2FA (e.g., "Sign In")
+2. **Fetch the code** - Retrieve the 2FA code from email/TOTP/API
+3. **Enter the code** - Input the code into the verification field
+
+```python
+from optexity.schema.automation import ActionNode
+from optexity.schema.actions.interaction_action import (
+    InteractionAction, ClickElementAction, InputTextAction
+)
+from optexity.schema.actions.two_factor_auth_action import (
+    Fetch2faAction, FetchEmail2FaAction
+)
+
+# Step 1: Click sign in and start 2FA timer
+ActionNode(
+    interaction_action=InteractionAction(
+        click_element=ClickElementAction(
+            command="""get_by_role("button", name="Sign In")""",
+            prompt_instructions="Click sign in to trigger 2FA",
+        ),
+        start_2fa_timer=True,  # Important: starts timing
+    )
+),
+
+# Step 2: Fetch 2FA code from email
+ActionNode(
+    fetch_2fa_action=Fetch2faAction(
+        fetch_email_2fa_action=FetchEmail2FaAction(
+            email_address="user@example.com",
+            subject="Your verification code",
+            service="gmail",
+        ),
+        output_variable_name="verification_code",
+    )
+),
+
+# Step 3: Enter the code
+ActionNode(
+    interaction_action=InteractionAction(
+        input_text=InputTextAction(
+            command="""get_by_label("Verification code")""",
+            input_text="{verification_code[0]}",
+            prompt_instructions="Enter the 2FA code",
+        )
+    )
+),
+```
+
+## Starting the 2FA Timer
+
+Before fetching a 2FA code, you need to indicate when the 2FA was triggered. This helps Optexity filter for emails/codes that arrived after the trigger.
+
+```python
+ActionNode(
+    interaction_action=InteractionAction(
+        click_element=ClickElementAction(
+            command="""get_by_role("button", name="Send Code")""",
+            prompt_instructions="Click to send verification code",
+        ),
+        start_2fa_timer=True,  # Marks the start time
+    )
+)
+```
+
+<Warning>
+`start_2fa_timer` can only be set on `click_element` actions. This makes sense because 2FA is typically triggered by clicking a button.
+</Warning>
+
+## Email 2FA
+
+Fetch verification codes from email messages.
+
+```python
+from optexity.schema.actions.two_factor_auth_action import (
+    Fetch2faAction,
+    FetchEmail2FaAction,
+)
+
+ActionNode(
+    fetch_2fa_action=Fetch2faAction(
+        fetch_email_2fa_action=FetchEmail2FaAction(
+            email_address="user@example.com",
+            subject="Your login verification code",
+            service="gmail",
+        ),
+        output_variable_name="email_code",
+    )
+)
+```
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `email_address` | `str` | Email address to check |
+| `subject` | `str` | Email subject to search for |
+| `service` | `"gmail"` | Email service (currently only Gmail supported) |
+
+### How It Works
+
+1. Optexity waits for a new email matching the subject
+2. Only emails received after `start_2fa_timer` are considered
+3. The verification code is extracted from the email body
+4. The code is stored in the specified `output_variable_name`
+
+## TOTP 2FA
+
+Generate time-based one-time passwords from a TOTP secret.
+
+```python
+from optexity.schema.actions.two_factor_auth_action import (
+    Fetch2faAction,
+    FetchTotp2FaAction,
+)
+
+ActionNode(
+    fetch_2fa_action=Fetch2faAction(
+        fetch_totp_2fa_action=FetchTotp2FaAction(
+            totp_secret="JBSWY3DPEHPK3PXP",
+        ),
+        output_variable_name="totp_code",
+    )
+)
+```
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `totp_secret` | `str` | Base32-encoded TOTP secret key |
+
+### Getting the TOTP Secret
+
+The TOTP secret is typically provided when you set up an authenticator app. It's the text form of the QR code you scan. Store it securely and pass it via input parameters:
+
+```python
+parameters=Parameters(
+    input_parameters={
+        "totp_secret": ["JBSWY3DPEHPK3PXP"],
+    },
+    ...
+),
+
+# Later in nodes:
+ActionNode(
+    fetch_2fa_action=Fetch2faAction(
+        fetch_totp_2fa_action=FetchTotp2FaAction(
+            totp_secret="{totp_secret[0]}",
+        ),
+        output_variable_name="totp_code",
+    )
+)
+```
+
+## API 2FA
+
+Fetch codes from a custom API endpoint.
+
+```python
+from optexity.schema.actions.two_factor_auth_action import (
+    Fetch2faAction,
+    Fetch2faApiCallAction,
+)
+
+ActionNode(
+    fetch_2fa_action=Fetch2faAction(
+        fetch_2fa_api_call_action=Fetch2faApiCallAction(
+            api_call_url="https://api.example.com/get-2fa-code",
+            api_call_method="POST",
+            api_call_headers={
+                "Authorization": "Bearer {api_token[0]}",
+                "Content-Type": "application/json",
+            },
+            api_call_body={
+                "account_id": "{account_id[0]}",
+            },
+        ),
+        output_variable_name="api_code",
+    )
+)
+```
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `api_call_url` | `str` | API endpoint URL |
+| `api_call_method` | `"GET" \| "POST"` | HTTP method |
+| `api_call_headers` | `dict` | Request headers |
+| `api_call_body` | `dict` | Request body (for POST) |
+
+## Using the 2FA Code
+
+After fetching, the code is available in `generated_parameters` under the specified `output_variable_name`:
+
+```python
+# Fetch code
+ActionNode(
+    fetch_2fa_action=Fetch2faAction(
+        fetch_totp_2fa_action=FetchTotp2FaAction(
+            totp_secret="...",
+        ),
+        output_variable_name="auth_code",  # Stored here
+    )
+),
+
+# Use code
+ActionNode(
+    interaction_action=InteractionAction(
+        input_text=InputTextAction(
+            command="""get_by_label("Enter code")""",
+            input_text="{auth_code[0]}",  # Access the code
+            prompt_instructions="Enter the authentication code",
+        )
+    )
+),
+```
+
+## Complete Example: Login with Email 2FA
+
+```python
+from optexity.schema.automation import Automation, ActionNode, Parameters
+from optexity.schema.actions.interaction_action import (
+    InteractionAction, ClickElementAction, InputTextAction
+)
+from optexity.schema.actions.two_factor_auth_action import (
+    Fetch2faAction, FetchEmail2FaAction
+)
+
+login_with_2fa = Automation(
+    url="https://secure.example.com/login",
+    parameters=Parameters(
+        input_parameters={
+            "username": ["user@example.com"],
+            "password": ["secretpassword"],
+        },
+        generated_parameters={
+            "verification_code": [],
+        },
+    ),
+    nodes=[
+        # Enter username
+        ActionNode(
+            interaction_action=InteractionAction(
+                input_text=InputTextAction(
+                    command="""get_by_label("Email")""",
+                    input_text="{username[0]}",
+                    prompt_instructions="Enter email",
+                )
+            )
+        ),
+        
+        # Enter password
+        ActionNode(
+            interaction_action=InteractionAction(
+                input_text=InputTextAction(
+                    command="""get_by_label("Password")""",
+                    input_text="{password[0]}",
+                    prompt_instructions="Enter password",
+                )
+            )
+        ),
+        
+        # Click sign in and start 2FA timer
+        ActionNode(
+            interaction_action=InteractionAction(
+                click_element=ClickElementAction(
+                    command="""get_by_role("button", name="Sign In")""",
+                    prompt_instructions="Click sign in",
+                ),
+                start_2fa_timer=True,
+            )
+        ),
+        
+        # Fetch 2FA code from email
+        ActionNode(
+            fetch_2fa_action=Fetch2faAction(
+                fetch_email_2fa_action=FetchEmail2FaAction(
+                    email_address="user@example.com",
+                    subject="Verification code",
+                    service="gmail",
+                ),
+                output_variable_name="verification_code",
+            )
+        ),
+        
+        # Enter the code
+        ActionNode(
+            interaction_action=InteractionAction(
+                input_text=InputTextAction(
+                    command="""get_by_label("Code")""",
+                    input_text="{verification_code[0]}",
+                    prompt_instructions="Enter verification code",
+                )
+            )
+        ),
+        
+        # Submit
+        ActionNode(
+            interaction_action=InteractionAction(
+                click_element=ClickElementAction(
+                    command="""get_by_role("button", name="Verify")""",
+                    prompt_instructions="Click verify",
+                )
+            )
+        ),
+    ],
+)
+```
+
+## Best Practices
+
+### Use Secure Parameter Passing
+
+Never hardcode secrets in your automation. Pass them via input parameters:
+
+```python
+parameters=Parameters(
+    input_parameters={
+        "totp_secret": ["..."],  # Passed at runtime
+    },
+    ...
+)
+```
+
+### Handle Timing
+
+2FA codes have limited validity. Consider:
+
+- Email codes: Usually valid for 5-10 minutes
+- TOTP codes: Rotate every 30 seconds
+- API codes: Depends on the service
+
+### Error Handling
+
+2FA can fail for various reasons:
+
+- Email not received in time
+- TOTP secret is incorrect
+- API returns an error
+
+Design your automations with appropriate retries and error handling.
+
+## Next Steps
+
+- See [Timing & Retries](/docs/timing-retries) for handling slow 2FA delivery
+- Check [Best Practices](/docs/best-practices) for security tips
+- Learn about [Interaction Actions](/docs/interaction-actions) for entering codes
+

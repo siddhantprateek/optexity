@@ -1,0 +1,146 @@
+---
+title: API Reference Introduction
+description: Overview of Optexity APIs and schemas
+---
+
+Welcome to the Optexity API Reference. This documentation covers all schemas, endpoints, and models you'll use when building and running automations.
+
+## Reference Structure
+
+### Schema Reference
+
+Complete documentation for automation schema types:
+
+<CardGroup cols={2}>
+<Card title="Automation Schema" icon="sitemap" href="/api-reference/automation-schema">
+  Automation, ActionNode, ForLoopNode, IfElseNode, Parameters
+</Card>
+<Card title="Interaction Actions" icon="hand-pointer" href="/api-reference/interaction-actions-ref">
+  Click, input, select, scroll, navigate, tabs, and agentic actions
+</Card>
+<Card title="Extraction Actions" icon="database" href="/api-reference/extraction-actions-ref">
+  LLM extraction, network calls, Python scripts, screenshots
+</Card>
+<Card title="Assertion Actions" icon="check-double" href="/api-reference/assertion-actions-ref">
+  LLM, network call, and Python script assertions
+</Card>
+<Card title="Miscellaneous Actions" icon="puzzle-piece" href="/api-reference/misc-actions-ref">
+  PythonScriptAction and 2FA actions
+</Card>
+</CardGroup>
+
+### HTTP API
+
+Documentation for the inference server endpoints:
+
+<CardGroup cols={2}>
+<Card title="Inference Endpoint" icon="play" href="/api-reference/inference-endpoint">
+  POST /inference - Submit automation tasks
+</Card>
+<Card title="Health Endpoints" icon="heart-pulse" href="/api-reference/health-endpoints">
+  GET /health, GET /is_task_running - Monitor server status
+</Card>
+</CardGroup>
+
+## Quick Reference
+
+### Core Types
+
+| Type | Description |
+|------|-------------|
+| `Automation` | Top-level container with URL, parameters, and nodes |
+| `ActionNode` | Single action (interaction, extraction, assertion, etc.) |
+| `ForLoopNode` | Iterate over a variable's values |
+| `IfElseNode` | Conditional execution |
+| `Parameters` | Input and generated variables |
+
+### Action Types
+
+| Category | Actions |
+|----------|---------|
+| **Interaction** | click, input, select, check, scroll, navigate, upload, download, agentic |
+| **Extraction** | LLM, network call, Python script, screenshot |
+| **Assertion** | LLM, network call, Python script |
+| **2FA** | Email, TOTP, API call |
+| **Misc** | Python script execution |
+
+### Key Concepts
+
+- **Locators**: Find elements using Playwright commands, XPath, or AI with `prompt_instructions`
+- **Variables**: Use `{variable_name[index]}` syntax for dynamic values
+- **Timing**: Control with `before_sleep_time`, `end_sleep_time`, `max_tries`
+- **Loops**: Iterate with `ForLoopNode` using `{variable_name[index]}`
+
+## Getting Started
+
+If you're new to Optexity:
+
+1. Start with the [Quickstart Guide](/docs/quickstart)
+2. Understand [Core Concepts](/docs/core-concepts)
+3. Learn about [Locators](/docs/locators)
+4. Build with [Interaction Actions](/docs/interaction-actions)
+
+Then return here for complete API details.
+
+## Import Patterns
+
+Common imports for building automations:
+
+```python
+# Core automation
+from optexity.schema.automation import (
+    Automation,
+    ActionNode,
+    ForLoopNode,
+    IfElseNode,
+    Parameters,
+)
+
+# Interaction actions
+from optexity.schema.actions.interaction_action import (
+    InteractionAction,
+    ClickElementAction,
+    InputTextAction,
+    SelectOptionAction,
+    CheckAction,
+    ScrollAction,
+    GoToUrlAction,
+    GoBackAction,
+    SwitchTabAction,
+    CloseCurrentTabAction,
+    CloseAllButLastTabAction,
+    UploadFileAction,
+    DownloadUrlAsPdfAction,
+    AgenticTask,
+    CloseOverlayPopupAction,
+)
+
+# Extraction actions
+from optexity.schema.actions.extraction_action import (
+    ExtractionAction,
+    LLMExtraction,
+    NetworkCallExtraction,
+    PythonScriptExtraction,
+    ScreenshotExtraction,
+)
+
+# Assertion actions
+from optexity.schema.actions.assertion_action import (
+    AssertionAction,
+    LLMAssertion,
+    NetworkCallAssertion,
+    PythonScriptAssertion,
+)
+
+# 2FA actions
+from optexity.schema.actions.two_factor_auth_action import (
+    Fetch2faAction,
+    FetchEmail2FaAction,
+    FetchTotp2FaAction,
+    Fetch2faApiCallAction,
+)
+
+# Misc actions
+from optexity.schema.actions.misc_action import PythonScriptAction
+```
+

@@ -20,15 +20,56 @@
                             "/docs/getting-started",
                             "/docs/inference-api"
                         ]
+                    },
+                    {
+                        "group": "Building Automations",
+                        "pages": [
+                            "/docs/quickstart",
+                            "/docs/core-concepts",
+                            "/docs/locators",
+                            "/docs/parameters-variables"
+                        ]
+                    },
+                    {
+                        "group": "Action Types",
+                        "pages": [
+                            "/docs/interaction-actions",
+                            "/docs/extraction-actions",
+                            "/docs/control-flow",
+                            "/docs/two-factor-auth"
+                        ]
+                    },
+                    {
+                        "group": "Advanced",
+                        "pages": [
+                            "/docs/timing-retries",
+                            "/docs/downloads-files",
+                            "/docs/agentic-tasks",
+                            "/docs/best-practices"
+                        ]
                     }
                 ]
             },
             {
-                "tab": "API reference",
+                "tab": "API Reference",
                 "groups": [
                     {
-                        "group": "API documentation",
-                        "pages": ["api-reference/introduction"]
+                        "group": "Schema Reference",
+                        "pages": [
+                            "/api-reference/automation-schema",
+                            "/api-reference/interaction-actions-ref",
+                            "/api-reference/extraction-actions-ref",
+                            "/api-reference/assertion-actions-ref",
+                            "/api-reference/misc-actions-ref"
+                        ]
+                    },
+                    {
+                        "group": "HTTP API",
+                        "pages": [
+                            "/api-reference/introduction",
+                            "/api-reference/inference-endpoint",
+                            "/api-reference/health-endpoints"
+                        ]
                     }
                 ]
             }
