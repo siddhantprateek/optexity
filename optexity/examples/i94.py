@@ -10,7 +10,9 @@ from optexity.schema.actions.interaction_action import (
 from optexity.schema.actions.misc_action import PythonScriptAction
 from optexity.schema.automation import ActionNode, Automation, Parameters
 
-i94_test = Automation(
+description = "I94 Example"
+endpoint_name = "i94"
+automation = Automation(
     url="https://i94.cbp.dhs.gov/search/recent-search",
     parameters=Parameters(
         input_parameters={

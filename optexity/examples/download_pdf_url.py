@@ -5,7 +5,9 @@ from optexity.schema.actions.interaction_action import (
 )
 from optexity.schema.automation import ActionNode, Automation, Parameters
 
-download_pdf_url_test = Automation(
+description = "Download PDF URL Example"
+endpoint_name = "download_pdf_url"
+automation = Automation(
     url="about:blank",
     parameters=Parameters(
         input_parameters={

@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 
 from optexity.examples.fadv import fadv_test
-from optexity.examples.i94 import i94_test
+from optexity.examples.i94 import automation
 from optexity.examples.pshpgeorgia_medicaid import (
     pshpgeorgia_login_test,
     pshpgeorgia_medicaid_test,
@@ -114,12 +114,12 @@ async def run_i94_test():
         await browser.start()
         logger.debug("Browser started")
         logger.debug("Navigating to I-94")
-        await browser.go_to_url(i94_test.url)
+        await browser.go_to_url(automation.url)
         logger.debug("Navigated to I-94")
 
         logger.debug("Running I-94 test")
         await asyncio.sleep(5)
-        await run_automation(i94_test, memory, browser)
+        await run_automation(automation, memory, browser)
         logger.debug("I-94 test finished")
 
         await asyncio.sleep(5)

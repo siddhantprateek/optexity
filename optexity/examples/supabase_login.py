@@ -5,7 +5,9 @@ from optexity.schema.actions.interaction_action import (
 )
 from optexity.schema.automation import ActionNode, Automation, Parameters
 
-supabase_login_test = Automation(
+description = "Supabase Login Example"
+endpoint_name = "supabase_login"
+automation = Automation(
     url="https://supabase.com",
     parameters=Parameters(
         input_parameters={
