@@ -71,6 +71,23 @@ class Task(BaseModel):
             }
             self.dedup_key = json.dumps(self.unique_parameters, sort_keys=True)
 
+        if (
+            self.automation.parameters.input_parameters.keys()
+            != self.input_parameters.keys()
+        ):
+            missing_keys = (
+                self.automation.parameters.input_parameters.keys()
+                - self.input_parameters.keys()
+            )
+            extra_keys = (
+                self.input_parameters.keys()
+                - self.automation.parameters.input_parameters.keys()
+            )
+
+            raise ValueError(
+                f"Please provide exactly the same input parameters as the automation. Missing keys: {missing_keys}, Extra keys: {extra_keys}"
+            )
+
         return self
 
     @model_validator(mode="after")
