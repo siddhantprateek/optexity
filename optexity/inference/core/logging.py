@@ -133,8 +133,8 @@ async def save_output_data_in_server(task: Task, memory: Memory):
 
 async def save_downloads_in_server(task: Task, memory: Memory):
     try:
-        if len(memory.downloads) == 0:
-            return
+        # if len(memory.downloads) == 0:
+        #     return
 
         url = urljoin(settings.SERVER_URL, settings.SAVE_DOWNLOADS_ENDPOINT)
         headers = {"x-api-key": task.api_key}
