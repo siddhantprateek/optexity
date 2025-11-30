@@ -107,6 +107,7 @@ async def save_output_data_in_server(task: Task, memory: Memory):
             output_data.model_dump(exclude_none=True, exclude={"screenshot"})
             for output_data in memory.variables.output_data
         ]
+        output_data = [data for data in output_data if data and len(data.keys()) > 0]
         body = {
             "task_id": task.task_id,
             "output_data": output_data,
@@ -138,7 +139,7 @@ async def save_downloads_in_server(task: Task, memory: Memory):
         url = urljoin(settings.SERVER_URL, settings.SAVE_DOWNLOADS_ENDPOINT)
         headers = {"x-api-key": task.api_key}
 
-        data = {
+        payload = {
             "task_id": task.task_id,  # form field
         }
 
@@ -154,16 +155,17 @@ async def save_downloads_in_server(task: Task, memory: Memory):
 
         # add screenshots
         for data in memory.variables.output_data:
-            files.append(
-                (
-                    "screenshots",
+            if data.screenshot:
+                files.append(
                     (
-                        data.screenshot.filename,
-                        base64.b64decode(data.screenshot.base64),
-                        "image/png",
-                    ),
+                        "screenshots",
+                        (
+                            data.screenshot.filename,
+                            base64.b64decode(data.screenshot.base64),
+                            "image/png",
+                        ),
+                    )
                 )
-            )
 
         files.append(
             (
@@ -178,7 +180,9 @@ async def save_downloads_in_server(task: Task, memory: Memory):
 
         async with httpx.AsyncClient() as client:
 
-            response = await client.post(url, headers=headers, data=data, files=files)
+            response = await client.post(
+                url, headers=headers, data=payload, files=files
+            )
 
             response.raise_for_status()
             return response.json()
