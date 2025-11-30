@@ -138,6 +138,7 @@ def get_app_with_endpoints(is_aws: bool):
 
         @app.post("/inference")
         async def inference(inference_request: InferenceRequest = Body(...)):
+            response_data: dict | None = None
             try:
 
                 async with httpx.AsyncClient(timeout=30.0) as client:
@@ -146,9 +147,9 @@ def get_app_with_endpoints(is_aws: bool):
                     response = await client.post(
                         url, json=inference_request.model_dump(), headers=headers
                     )
+                    response_data = response.json()
                     response.raise_for_status()
 
-                response_data = response.json()
                 task_data = response_data["task"]
 
                 task = Task.model_validate_json(task_data)
@@ -161,10 +162,12 @@ def get_app_with_endpoints(is_aws: bool):
                 )
 
             except Exception as e:
-                logger.error(f"❌ Error fetching recordings: {str(e)}")
-                return JSONResponse(
-                    {"success": False, "error": str(e)}, status_code=500
-                )
+                error = str(e)
+                if response_data is not None:
+                    error = response_data.get("error", str(e))
+
+                logger.error(f"❌ Error fetching recordings: {error}")
+                return JSONResponse({"success": False, "error": error}, status_code=500)
 
     if is_aws:
 
