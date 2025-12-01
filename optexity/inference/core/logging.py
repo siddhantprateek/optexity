@@ -242,7 +242,7 @@ async def initiate_callback(task: Task):
 
         async with httpx.AsyncClient() as client:
 
-            response = await client.put(url, headers=headers, json=data)
+            response = await client.post(url, headers=headers, json=data)
 
             response.raise_for_status()
             return response.json()
