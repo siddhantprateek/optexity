@@ -11,12 +11,6 @@ class LLMAssertion(LLMExtraction):
 
     @model_validator(mode="after")
     def validate_output_var_in_format(self):
-        instruction = """You are a helpful assistant that verifies if the condition is met. 
-        Use the info supplied below to verify the condition.
-        The assertion_reason should be a short explanation of why the condition was met or not met.
-        The assertion_result should be True if the condition is met, False otherwise.
-        """
-        self.extraction_instructions = instruction + "\n" + self.extraction_instructions
         if "screenshot" not in self.source:
             self.source.append("screenshot")
 
