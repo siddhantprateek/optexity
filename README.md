@@ -196,15 +196,6 @@ You can monitor the task on the dashboard. It will show the status, errors, outp
 
 ## Video Tutorial
 
-<iframe
-  width="100%"
-  height="400"
-  src="https://www.youtube.com/embed/q51r3idYtxo"
-  frameborder="0"
-  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-  allowfullscreen
-/>
-
 [![Watch the video](https://img.youtube.com/vi/q51r3idYtxo/0.jpg)](https://www.youtube.com/watch?v=q51r3idYtxo)
 
 ## Documentation
