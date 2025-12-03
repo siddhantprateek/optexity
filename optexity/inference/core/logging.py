@@ -236,7 +236,8 @@ async def initiate_callback(task: Task):
         headers = {"x-api-key": task.api_key}
 
         data = {
-            "task_id": task.task_id,  # form field
+            "task_id": task.task_id,
+            "endpoint_name": task.endpoint_name,
             "callback_url": task.callback_url.model_dump(),
         }
 

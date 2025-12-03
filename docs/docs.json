@@ -60,7 +60,8 @@
                             "/api-reference/interaction-actions-ref",
                             "/api-reference/extraction-actions-ref",
                             "/api-reference/assertion-actions-ref",
-                            "/api-reference/misc-actions-ref"
+                            "/api-reference/misc-actions-ref",
+                            "/api-reference/callback"
                         ]
                     },
                     {

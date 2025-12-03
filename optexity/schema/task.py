@@ -34,6 +34,7 @@ class Task(BaseModel):
     task_id: str
     user_id: str
     recording_id: str
+    endpoint_name: str
     automation: Automation
     input_parameters: dict[str, list[str]]
     unique_parameter_names: list[str]
