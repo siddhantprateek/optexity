@@ -19,6 +19,7 @@ dependencies = [
     "black",
     "isort",
     "aiofiles",
+    "onepassword-sdk"
 ]
 
 [tool.setuptools.packages.find]

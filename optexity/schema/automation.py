@@ -1,12 +1,57 @@
+import os
 from typing import Literal
 
-from pydantic import BaseModel, model_validator
+from onepassword import Client as OnePasswordClient
+from pydantic import BaseModel, Field, model_validator
 
 from optexity.schema.actions.assertion_action import AssertionAction
 from optexity.schema.actions.extraction_action import ExtractionAction
 from optexity.schema.actions.interaction_action import InteractionAction
 from optexity.schema.actions.misc_action import PythonScriptAction
 from optexity.schema.actions.two_factor_auth_action import Fetch2faAction
+
+_onepassword_client = None
+
+
+async def get_onepassword_client():
+    global _onepassword_client
+    if _onepassword_client is None:
+        _onepassword_client = await OnePasswordClient.authenticate(
+            auth=os.getenv("OP_SERVICE_ACCOUNT_TOKEN"),
+            integration_name="Optexity 1Password Integration",
+            integration_version="v1.0.0",
+        )
+    return _onepassword_client
+
+
+class OnePasswordParameter(BaseModel):
+    vault_name: str
+    item_name: str
+    field_name: str
+
+
+class AmazonSecretsManagerParameter(BaseModel):
+    pass
+
+    @model_validator(mode="after")
+    def validate_amazon_secrets_manager_parameter(
+        cls, model: "AmazonSecretsManagerParameter"
+    ):
+        raise NotImplementedError("Amazon Secrets Manager is not implemented yet")
+
+
+class SecureParameter(BaseModel):
+    onepassword: OnePasswordParameter | None = None
+    amazon_secrets_manager: AmazonSecretsManagerParameter | None = None
+
+    @model_validator(mode="after")
+    def validate_secure_parameter(cls, model: "SecureParameter"):
+        non_null = [k for k, v in model.model_dump().items() if v is not None]
+        if len(non_null) != 1:
+            raise ValueError(
+                "Exactly one of onepassword or amazon_secrets_manager must be provided"
+            )
+        return model
 
 
 class ActionNode(BaseModel):
@@ -84,11 +129,31 @@ class ActionNode(BaseModel):
 
         return self
 
-    def replace_variables(self, variables: dict[str, list[str]]):
+    async def replace_variables(
+        self, variables: dict[str, list[str | SecureParameter]]
+    ):
         for key, values in variables.items():
+
             for index, value in enumerate(values):
                 pattern = f"{{{key}[{index}]}}"
-                self.replace(pattern, value)
+
+                if isinstance(value, SecureParameter):
+                    if value.onepassword:
+                        client = await get_onepassword_client()
+                        str_value = await client.secrets.resolve(
+                            f"op://{value.onepassword.vault_name}/{value.onepassword.item_name}/{value.onepassword.field_name}"
+                        )
+                    elif value.amazon_secrets_manager:
+                        raise NotImplementedError(
+                            "Amazon Secrets Manager is not implemented yet"
+                        )
+
+                elif isinstance(value, str):
+                    str_value = value
+                else:
+                    raise ValueError(f"Invalid value type for {key}: {type(value)}")
+
+                self.replace(pattern, str_value)
 
         return self
 
@@ -107,6 +172,7 @@ class IfElseNode(BaseModel):
 
 class Parameters(BaseModel):
     input_parameters: dict[str, list[str]]
+    secure_parameters: dict[str, list[SecureParameter]] = Field(default_factory=dict)
     generated_parameters: dict[str, list[str]]
 
 
