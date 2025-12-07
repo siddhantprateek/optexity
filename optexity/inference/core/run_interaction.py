@@ -90,7 +90,12 @@ async def run_interaction_action(
             await handle_go_to_url(interaction_action.go_to_url, task, memory, browser)
         elif interaction_action.upload_file:
             await handle_upload_file(
-                interaction_action.upload_file, task, memory, browser
+                interaction_action.upload_file,
+                task,
+                memory,
+                browser,
+                interaction_action.max_timeout_seconds_per_try,
+                interaction_action.max_tries,
             )
     except AssertLocatorPresenceException as e:
         await handle_assert_locator_presence_error(
