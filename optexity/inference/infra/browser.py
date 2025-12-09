@@ -73,12 +73,16 @@ class Browser:
                 headless=self.headless,
                 args=[
                     "--start-fullscreen",
+                    "--disable-popup-blocking",
                     f"--remote-debugging-port={self.debug_port}",
                 ],
                 chromium_sandbox=False,
             )
 
             self.context = await self.browser.new_context(no_viewport=True)
+            self.context.on(
+                "page", lambda p: print("AUTO POPUP OPENED:", p.url) and p.goto(p.url)
+            )
             self.context.on("page", lambda p: p.on("download", handle_random_download))
             self.page = await self.context.new_page()
 
