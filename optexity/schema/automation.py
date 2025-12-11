@@ -188,6 +188,20 @@ class Parameters(BaseModel):
     generated_parameters: dict[str, list[str]]
 
 
+class Node(BaseModel):
+    action_node: ActionNode | None = None
+    for_loop_node: ForLoopNode | None = None
+    if_else_node: IfElseNode | None = None
+
+    def validate_node(self):
+        non_null = [k for k, v in self.model_dump().items() if v is not None]
+        if len(non_null) != 1:
+            raise ValueError(
+                "Exactly one of action_node, for_loop_node, or if_else_node must be provided"
+            )
+        return self
+
+
 class Automation(BaseModel):
     browser_channel: Literal["chromium", "chrome"] = "chromium"
     expected_downloads: int = 0

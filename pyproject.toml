@@ -20,7 +20,9 @@ dependencies = [
     "isort",
     "aiofiles",
     "onepassword-sdk",
-    "async_lru"
+    "async_lru",
+    "fastapi",
+    "httpx"
 ]
 
 [tool.setuptools.packages.find]

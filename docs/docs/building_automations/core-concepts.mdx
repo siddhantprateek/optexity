@@ -14,30 +14,28 @@ Automation
 ├── url           # Starting point
 ├── parameters    # Input and generated variables
 └── nodes[]       # Sequence of actions
-    ├── ActionNode
-    ├── ForLoopNode
-    └── IfElseNode
+    ├── action_node
+    ├── for_loop_node
+    └── if_else_node
 ```
 
 ## Automation
 
 The `Automation` class is the top-level container for your workflow.
 
-```python
-from optexity.schema.automation import Automation, Parameters
-
-automation = Automation(
-    url="https://example.com/login",
-    parameters=Parameters(
-        input_parameters={
-            "email": ["user@example.com"],
-        },
-        generated_parameters={},
-    ),
-    nodes=[
-        # ActionNodes go here
-    ],
-)
+```json
+{
+  "url": "https://example.com/login",
+  "parameters": {
+    "input_parameters": {
+      "email": ["user@example.com"]
+    },
+    "generated_parameters": {}
+  },
+  "nodes": [
+    // ActionNodes go here
+  ]
+}
 ```
 
 ### Properties
@@ -56,11 +54,13 @@ Parameters define the data flowing through your automation. They're divided into
 
 Values you provide before execution starts. Think of these as the "inputs" to your automation:
 
-```python
-input_parameters={
+```json
+{
+  "input_parameters": {
     "username": ["john@example.com"],
     "password": ["secret123"],
-    "search_query": ["laptop", "monitor"],  # Multiple values for loops
+    "search_query": ["laptop", "monitor"]
+  }
 }
 ```
 
@@ -68,10 +68,12 @@ input_parameters={
 
 Values extracted during execution. These are populated by extraction actions and can be used in subsequent steps:
 
-```python
-generated_parameters={
-    "order_id": [],      # Will be populated during execution
-    "confirmation": [],
+```json
+{
+  "generated_parameters": {
+    "order_id": [],
+    "confirmation": []
+  }
 }
 ```
 
@@ -79,39 +81,34 @@ generated_parameters={
 
 Use the `{variable_name[index]}` syntax to reference parameter values:
 
-```python
-# Access first value
-input_text="{username[0]}"
-
-# Access second value
-input_text="{search_query[1]}"
-
-# In loops, use {variable_name[index]} where index iterates
-prompt_instructions="Click on order {order_id[index]}"
+```json
+{
+  "input_text": "{username[0]}",
+  "prompt_instructions": "Click on order {order_id[index]}"
+}
 ```
+
+Examples:
+- `"{username[0]}"` - Access first value
+- `"{search_query[1]}"` - Access second value  
+- `"{order_id[index]}"` - In loops, use `{variable_name[index]}` where index iterates
 
 ## ActionNode
 
 An `ActionNode` represents a single atomic action in your automation. Each node must contain exactly one action type.
 
-```python
-from optexity.schema.automation import ActionNode
-from optexity.schema.actions.interaction_action import (
-    InteractionAction,
-    ClickElementAction,
-)
-
-node = ActionNode(
-    interaction_action=InteractionAction(
-        click_element=ClickElementAction(
-            command="""get_by_role("button", name="Submit")""",
-            prompt_instructions="Click the submit button",
-        )
-    ),
-    before_sleep_time=0.0,
-    end_sleep_time=1.0,
-    expect_new_tab=False,
-)
+```json
+{
+  "interaction_action": {
+    "click_element": {
+      "command": "get_by_role(\"button\", name=\"Submit\")",
+      "prompt_instructions": "Click the submit button"
+    }
+  },
+  "before_sleep_time": 0.0,
+  "end_sleep_time": 1.0,
+  "expect_new_tab": false
+}
 ```
 
 ### Action Types
@@ -139,23 +136,21 @@ Each ActionNode can contain exactly one of these action types:
 
 Use `ForLoopNode` to iterate over extracted data. This is powerful for processing lists of items, like clicking through search results or processing multiple records.
 
-```python
-from optexity.schema.automation import ForLoopNode, ActionNode
-
-loop = ForLoopNode(
-    variable_name="order_ids",
-    nodes=[
-        ActionNode(
-            interaction_action=InteractionAction(
-                click_element=ClickElementAction(
-                    command="""get_by_role("link", name="{order_ids[index]}")""",
-                    prompt_instructions="Click order {order_ids[index]}",
-                )
-            )
-        ),
-        # More actions for each iteration...
-    ],
-)
+```json
+{
+  "variable_name": "order_ids",
+  "nodes": [
+    {
+      "interaction_action": {
+        "click_element": {
+          "command": "get_by_role(\"link\", name=\"{order_ids[index]}\")",
+          "prompt_instructions": "Click order {order_ids[index]}"
+        }
+      }
+    }
+    // More actions for each iteration...
+  ]
+}
 ```
 
 The loop iterates over all values in the specified variable. Inside the loop, use `{variable_name[index]}` to access the current iteration's value.
@@ -170,20 +165,26 @@ The loop iterates over all values in the specified variable. Inside the loop, us
 
 Use `IfElseNode` for conditional execution based on a condition string.
 
-```python
-from optexity.schema.automation import IfElseNode, ActionNode
-
-conditional = IfElseNode(
-    condition="has_captcha",
-    if_nodes=[
-        # Actions to execute if condition is true
-        ActionNode(...)
-    ],
-    else_nodes=[
-        # Actions to execute if condition is false
-        ActionNode(...)
-    ],
-)
+```json
+{
+  "condition": "has_captcha",
+  "if_nodes": [
+    // Actions to execute if condition is true
+    {
+      "interaction_action": {
+        // ... action definition
+      }
+    }
+  ],
+  "else_nodes": [
+    // Actions to execute if condition is false
+    {
+      "interaction_action": {
+        // ... action definition
+      }
+    }
+  ]
+}
 ```
 
 ## Variables and Memory
@@ -197,48 +198,48 @@ During execution, Optexity maintains a memory system that tracks:
 
 ### Variable Flow Example
 
-```python
-# 1. Start with input parameters
-parameters=Parameters(
-    input_parameters={"search_term": ["laptop"]},
-    generated_parameters={"product_ids": []},
-)
-
-# 2. Use input parameters in actions
-ActionNode(
-    interaction_action=InteractionAction(
-        input_text=InputTextAction(
-            input_text="{search_term[0]}",  # Uses "laptop"
-            ...
-        )
-    )
-)
-
-# 3. Extract data into generated parameters
-ActionNode(
-    extraction_action=ExtractionAction(
-        llm=LLMExtraction(
-            extraction_format={"product_ids": "List[str]"},
-            output_variable_names=["product_ids"],
-            ...
-        )
-    )
-)
-
-# 4. Use generated parameters in subsequent actions
-ForLoopNode(
-    variable_name="product_ids",
-    nodes=[
-        ActionNode(
-            interaction_action=InteractionAction(
-                click_element=ClickElementAction(
-                    prompt_instructions="Click product {product_ids[index]}",
-                    ...
-                )
-            )
-        )
-    ],
-)
+```json
+{
+  "parameters": {
+    "input_parameters": {
+      "search_term": ["laptop"]
+    },
+    "generated_parameters": {
+      "product_ids": []
+    }
+  },
+  "nodes": [
+    {
+      "interaction_action": {
+        "input_text": {
+          "input_text": "{search_term[0]}"
+        }
+      }
+    },
+    {
+      "extraction_action": {
+        "llm": {
+          "extraction_format": {
+            "product_ids": "List[str]"
+          },
+          "output_variable_names": ["product_ids"]
+        }
+      }
+    },
+    {
+      "variable_name": "product_ids",
+      "nodes": [
+        {
+          "interaction_action": {
+            "click_element": {
+              "prompt_instructions": "Click product {product_ids[index]}"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
 ```
 
 ## Execution Model
