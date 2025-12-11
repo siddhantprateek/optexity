@@ -80,10 +80,8 @@ async def run_automation(task: Task, child_process_id: int):
                     f"Expanded for loop node {node.variable_name} into {len(action_nodes)} nodes"
                 )
             elif isinstance(node, IfElseNode):
-                action_nodes = handle_if_else_node(node, memory)
-                logger.debug(
-                    f"nodes for if else node {node.condition} are {action_nodes}"
-                )
+                await handle_if_else_node(node, memory, task, browser, full_automation)
+                continue
             else:
                 action_nodes = [node]
 
@@ -311,9 +309,32 @@ def evaluate_condition(condition: str, memory: Memory) -> bool:
     )
 
 
-def handle_if_else_node(if_else_node: IfElseNode, memory: Memory) -> list[ActionNode]:
+async def handle_if_else_node(
+    if_else_node: IfElseNode,
+    memory: Memory,
+    task: Task,
+    browser: Browser,
+    full_automation: list[ActionNode],
+) -> list[ActionNode]:
+    logger.debug(
+        f"Handling if else node {if_else_node.condition} with if nodes {if_else_node.if_nodes} and else nodes {if_else_node.else_nodes}"
+    )
     condition_result = evaluate_condition(if_else_node.condition, memory)
     if condition_result:
-        return if_else_node.if_nodes
+        nodes = if_else_node.if_nodes
     else:
-        return if_else_node.else_nodes
+        nodes = if_else_node.else_nodes
+
+    for node in nodes:
+        if isinstance(node, ActionNode):
+            full_automation.append(node.model_dump())
+            await run_action_node(
+                node,
+                task.automation.parameters.secure_parameters,
+                task,
+                memory,
+                browser,
+            )
+        elif isinstance(node, IfElseNode):
+            await handle_if_else_node(node, memory, task, browser, full_automation)
+    logger.debug(f"Finished handling if else node {if_else_node.condition}")
