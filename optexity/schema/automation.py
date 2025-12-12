@@ -121,7 +121,8 @@ class ActionNode(BaseModel):
 
         return model
 
-    def replace(self, pattern: str, replacement: str):
+    def replace(self, pattern: str, replacement: str | int | float | bool | None):
+        replacement = str(replacement)
         if self.interaction_action:
             self.interaction_action.replace(pattern, replacement)
         if self.assertion_action:
@@ -180,6 +181,41 @@ class ForLoopNode(BaseModel):
     variable_name: str
     nodes: list[ActionNode]
 
+    @model_validator(mode="before")
+    def migrate_old_nodes(cls, data: dict[str, Any]):
+        for key in ["nodes"]:
+            raw_nodes = data.get(key, [])
+            new_nodes = []
+            used_old_format = False
+
+            for item in raw_nodes:
+                # --- new format: already has a type ---
+                if isinstance(item, dict) and "type" in item:
+                    new_nodes.append(item)
+                    continue
+
+                # --- old format cases ---
+                used_old_format = True
+
+                if isinstance(item, dict) and "condition" in item:
+                    new_nodes.append({"type": "if_else_node", **item})
+                    continue
+
+                if isinstance(item, dict) and "variable_name" in item:
+                    new_nodes.append({"type": "for_loop_node", **item})
+                    continue
+
+                new_nodes.append({"type": "action_node", **item})
+
+            if used_old_format:
+                logger.warning(
+                    "Old node format without 'type' is deprecated. "
+                    "Use the new format: {'type': 'action_node'|'for_loop_node'|'if_else_node', ...}"
+                )
+
+            data[key] = new_nodes
+        return data
+
 
 IfElseNodeRef = ForwardRef("IfElseNode")
 
@@ -190,11 +226,46 @@ class IfElseNode(BaseModel):
     if_nodes: list[ActionNode | IfElseNodeRef]
     else_nodes: list[ActionNode | IfElseNodeRef] = []
 
+    @model_validator(mode="before")
+    def migrate_old_nodes(cls, data: dict[str, Any]):
+        for key in ["if_nodes", "else_nodes"]:
+            raw_nodes = data.get(key, [])
+            new_nodes = []
+            used_old_format = False
+
+            for item in raw_nodes:
+                # --- new format: already has a type ---
+                if isinstance(item, dict) and "type" in item:
+                    new_nodes.append(item)
+                    continue
+
+                # --- old format cases ---
+                used_old_format = True
+
+                if isinstance(item, dict) and "condition" in item:
+                    new_nodes.append({"type": "if_else_node", **item})
+                    continue
+
+                if isinstance(item, dict) and "variable_name" in item:
+                    new_nodes.append({"type": "for_loop_node", **item})
+                    continue
+
+                new_nodes.append({"type": "action_node", **item})
+
+            if used_old_format:
+                logger.warning(
+                    "Old node format without 'type' is deprecated. "
+                    "Use the new format: {'type': 'action_node'|'for_loop_node'|'if_else_node', ...}"
+                )
+
+            data[key] = new_nodes
+        return data
+
 
 class Parameters(BaseModel):
-    input_parameters: dict[str, list[str]]
+    input_parameters: dict[str, list[str | int | float | bool]]
     secure_parameters: dict[str, list[SecureParameter]] = Field(default_factory=dict)
-    generated_parameters: dict[str, list[str]]
+    generated_parameters: dict[str, list[str | int | float | bool | None]]
 
 
 class Automation(BaseModel):
@@ -227,6 +298,7 @@ class Automation(BaseModel):
 
             if isinstance(item, dict) and "variable_name" in item:
                 new_nodes.append({"type": "for_loop_node", **item})
+                continue
 
             new_nodes.append({"type": "action_node", **item})
 

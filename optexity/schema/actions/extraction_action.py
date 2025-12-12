@@ -36,9 +36,17 @@ class LLMExtraction(BaseModel):
                     raise ValueError(
                         f"Output variable {key} not found in extraction_format"
                     )
-                if eval(self.extraction_format[key]) not in [str, list[str], List[str]]:
+                if eval(self.extraction_format[key]) not in [
+                    int,
+                    float,
+                    bool,
+                    str,
+                    None,
+                    list[str | int | float | bool | None],
+                    List[str | int | float | bool | None],
+                ]:
                     raise ValueError(
-                        f"Output variable {key} must be a string or a list of strings"
+                        f"Output variable {key} must be a string, int, float, bool, or a list of strings, ints, floats, or bools"
                     )
 
         return self
