@@ -1,4 +1,5 @@
-from typing import ForwardRef, Literal
+import logging
+from typing import Annotated, Any, ForwardRef, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -8,6 +9,8 @@ from optexity.schema.actions.interaction_action import InteractionAction
 from optexity.schema.actions.misc_action import PythonScriptAction
 from optexity.schema.actions.two_factor_auth_action import Fetch2faAction
 from optexity.utils.utils import get_onepassword_value, get_totp_code
+
+logger = logging.getLogger(__name__)
 
 
 class OnePasswordParameter(BaseModel):
@@ -57,6 +60,7 @@ class SecureParameter(BaseModel):
 
 
 class ActionNode(BaseModel):
+    type: Literal["action_node"]
     interaction_action: InteractionAction | None = None
     assertion_action: AssertionAction | None = None
     extraction_action: ExtractionAction | None = None
@@ -172,6 +176,7 @@ class ActionNode(BaseModel):
 
 class ForLoopNode(BaseModel):
     # Loops through range of values of {variable_name[index]}
+    type: Literal["for_loop_node"]
     variable_name: str
     nodes: list[ActionNode]
 
@@ -180,6 +185,7 @@ IfElseNodeRef = ForwardRef("IfElseNode")
 
 
 class IfElseNode(BaseModel):
+    type: Literal["if_else_node"]
     condition: str
     if_nodes: list[ActionNode | IfElseNodeRef]
     else_nodes: list[ActionNode | IfElseNodeRef] = []
@@ -191,26 +197,47 @@ class Parameters(BaseModel):
     generated_parameters: dict[str, list[str]]
 
 
-class Node(BaseModel):
-    action_node: ActionNode | None = None
-    for_loop_node: ForLoopNode | None = None
-    if_else_node: IfElseNode | None = None
-
-    def validate_node(self):
-        non_null = [k for k, v in self.model_dump().items() if v is not None]
-        if len(non_null) != 1:
-            raise ValueError(
-                "Exactly one of action_node, for_loop_node, or if_else_node must be provided"
-            )
-        return self
-
-
 class Automation(BaseModel):
     browser_channel: Literal["chromium", "chrome"] = "chromium"
     expected_downloads: int = 0
     url: str
     parameters: Parameters
-    nodes: list[ActionNode | ForLoopNode | IfElseNode]
+    nodes: list[
+        Annotated[ActionNode | ForLoopNode | IfElseNode, Field(discriminator="type")]
+    ]
+
+    @model_validator(mode="before")
+    def migrate_old_nodes(cls, data: dict[str, Any]):
+        raw_nodes = data.get("nodes", [])
+        new_nodes = []
+        used_old_format = False
+
+        for item in raw_nodes:
+            # --- new format: already has a type ---
+            if isinstance(item, dict) and "type" in item:
+                new_nodes.append(item)
+                continue
+
+            # --- old format cases ---
+            used_old_format = True
+
+            if isinstance(item, dict) and "condition" in item:
+                new_nodes.append({"type": "if_else_node", **item})
+                continue
+
+            if isinstance(item, dict) and "variable_name" in item:
+                new_nodes.append({"type": "for_loop_node", **item})
+
+            new_nodes.append({"type": "action_node", **item})
+
+        if used_old_format:
+            logger.warning(
+                "Old node format without 'type' is deprecated. "
+                "Use the new format: {'type': 'action_node'|'for_loop_node'|'if_else_node', ...}"
+            )
+
+        data["nodes"] = new_nodes
+        return data
 
     @model_validator(mode="after")
     def validate_parameters_with_examples(cls, model: "Automation"):
