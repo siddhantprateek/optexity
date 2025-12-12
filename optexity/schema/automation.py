@@ -165,8 +165,13 @@ class ActionNode(BaseModel):
                             value.totp.totp_secret, value.totp.digits
                         )
 
-                elif isinstance(value, str):
-                    str_value = value
+                elif (
+                    isinstance(value, str)
+                    or isinstance(value, int)
+                    or isinstance(value, float)
+                    or isinstance(value, bool)
+                ):
+                    str_value = str(value)
                 else:
                     raise ValueError(f"Invalid value type for {key}: {type(value)}")
 
