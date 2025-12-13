@@ -236,13 +236,46 @@ async def save_trajectory_in_server(task: Task, memory: Memory):
 
 
 async def initiate_callback(task: Task):
-    try:
 
+    if settings.DEPLOYMENT == "dev" and settings.LOCAL_CALLBACK_URL is not None:
+        logger.info("initiating local callback")
+        callback_data = None
+        try:
+            url = urljoin(settings.SERVER_URL, settings.GET_CALLBACK_DATA_ENDPOINT)
+            headers = {"x-api-key": task.api_key}
+            data = {
+                "task_id": task.task_id,
+                "endpoint_name": task.endpoint_name,
+            }
+            async with httpx.AsyncClient() as client:
+                response = await client.post(url, headers=headers, json=data)
+                response.raise_for_status()
+                callback_data = response.json()["data"]
+        except Exception as e:
+            logger.error(f"Failed to get callback data: {e}")
+            return
+
+        if callback_data is None:
+            return
+
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    settings.LOCAL_CALLBACK_URL, json=callback_data
+                )
+                response.raise_for_status()
+        except Exception as e:
+            logger.error(f"Failed to initiate local callback: {e}")
+            return
+
+        return
+
+    try:
+        logger.info("initiating callback")
         if task.callback_url is None:
             return
-        logger.info("initiating callback")
 
-        url = urljoin(settings.SERVER_URL, settings.CALLBACK_ENDPOINT)
+        url = urljoin(settings.SERVER_URL, settings.INITIATE_CALLBACK_ENDPOINT)
         headers = {"x-api-key": task.api_key}
 
         data = {

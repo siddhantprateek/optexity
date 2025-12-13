@@ -1,0 +1,20 @@
+---
+title: Callbacks
+description: Using callbacks to receive status and data of your automations
+---
+
+Optexity provides ability to receive callbacks when your automations are completed. You can read about the specification of the data received in the callback [here](/docs/api-reference/callback.mdx).
+
+# How to use callbacks in your automations
+
+## Using callbacks in local development
+
+You can use callbacks in local development by using the `LOCAL_CALLBACK_URL` environment variable. This will cause Optexity to send the callback data to the URL you specify. You can use this to test your automations locally. The URL can be any valid URL which is publicly accessible or accessible on the same network as the machine running the automation. The callback endpoint in local needs to be unauthenticated.
+
+```python
+LOCAL_CALLBACK_URL=http://localhost:3000/receive_callback
+```
+
+## Using callbacks in production
+
+You can use callbacks in production by setting the CALLBACK_URL in the dashboard. The callback endpoint can be authenticated or unauthenticated. We can callback on URLs authenticated by API key or by username and password. All the URLs should be publicly accessible from the internet.
