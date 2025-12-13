@@ -1,4 +1,4 @@
-from typing import List, Literal, Optional
+from typing import Any, List, Literal, Optional
 from uuid import uuid4
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -61,7 +61,18 @@ class NetworkCallExtraction(BaseModel):
     header_filter: Optional[dict[str, str]] = None
     extract_from: None | Literal["request", "response"] = None
     download_from: None | Literal["request", "response"] = None
-    download_filename: str = Field(default_factory=lambda: str(uuid4()))
+    download_filename: str | None = None
+
+    @model_validator(mode="before")
+    def download_filename_if_download_from_is_set(cls, data: dict[str, Any]):
+        if (
+            "downlowd_from" in data
+            and data["download_from"] is not None
+            and ("download_filename" not in data or data["download_filename"] is None)
+        ):
+            data["download_filename"] = str(uuid4())
+
+        return data
 
     def replace(self, pattern: str, replacement: str):
         return self

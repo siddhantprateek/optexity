@@ -1,10 +1,10 @@
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 
 class InferenceRequest(BaseModel):
     endpoint_name: str
-    input_parameters: dict[str, list[str]]
-    unique_parameter_names: list[str]
+    input_parameters: dict[str, list[str | int | float | bool]]
+    unique_parameter_names: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_unique_parameter_names(self):

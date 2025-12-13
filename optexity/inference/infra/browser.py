@@ -245,7 +245,8 @@ class Browser:
             )
 
         except Exception as e:
-            logger.error(f"Could not get body: {e}")
+            # logger.error(f"Could not get body: {e}")
+            pass
 
     async def attach_network_listeners(self):
         page = await self.get_current_page()

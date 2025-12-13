@@ -8,6 +8,7 @@ from optexity.examples import (
     download_pdf_url,
     file_upload,
     i94,
+    i94_travel_history,
     peachstate_medicaid,
     supabase_login,
 )
@@ -22,6 +23,8 @@ logger.setLevel(logging.INFO)
 def main(args):
     if args.example == "i94":
         example = i94
+    elif args.example == "i94_travel_history":
+        example = i94_travel_history
     elif args.example == "peachstate_medicaid":
         example = peachstate_medicaid
     elif args.example == "supabase_login":
@@ -67,6 +70,7 @@ if __name__ == "__main__":
         type=str,
         choices=[
             "i94",
+            "i94_travel_history",
             "peachstate_medicaid",
             "supabase_login",
             "download_pdf_url",

@@ -24,57 +24,64 @@ automation = Automation(
     ),
     nodes=[
         ActionNode(
+            type="action_node",
             interaction_action=InteractionAction(
                 input_text=InputTextAction(
                     command="""get_by_test_id("text-field")""",
                     input_text="{username[0]}",
                     prompt_instructions="Enter the email in the text field",
                 )
-            )
+            ),
         ),
         ActionNode(
+            type="action_node",
             interaction_action=InteractionAction(
                 click_element=ClickElementAction(
                     command="""get_by_role("button", name="Continue")""",
                     prompt_instructions="Click the Continue button",
                 )
-            )
+            ),
         ),
         ActionNode(
+            type="action_node",
             interaction_action=InteractionAction(
                 input_text=InputTextAction(
                     command="""get_by_role("textbox", name="Password")""",
                     input_text="{password[0]}",
                     prompt_instructions="Enter the password",
                 )
-            )
+            ),
         ),
         ActionNode(
+            type="action_node",
             interaction_action=InteractionAction(
                 click_element=ClickElementAction(
                     command="""get_by_role("button", name="Login")""",
                     prompt_instructions="Click the Login button",
                 )
-            )
+            ),
         ),
         ActionNode(
+            type="action_node",
             interaction_action=InteractionAction(
                 select_option=SelectOptionAction(
                     command="""get_by_label("Plan Type")""",
                     select_values=["{plan_type[0]}"],
                     prompt_instructions="Select the Plan Type 8774789",
                 )
-            )
+            ),
         ),
         ActionNode(
+            type="action_node",
             interaction_action=InteractionAction(
                 click_element=ClickElementAction(
                     command="""get_by_role("button", name="GO")""",
                     prompt_instructions="Click the GO button",
                 )
-            )
+            ),
         ),
         ActionNode(
+            type="action_node",
             interaction_action=InteractionAction(
                 input_text=InputTextAction(
                     command="""get_by_test_id("MemberIDOrLastName")""",
@@ -84,6 +91,7 @@ automation = Automation(
             ),
         ),
         ActionNode(
+            type="action_node",
             interaction_action=InteractionAction(
                 input_text=InputTextAction(
                     command="""locator("#tDatePicker")""",
@@ -93,22 +101,25 @@ automation = Automation(
             ),
         ),
         ActionNode(
+            type="action_node",
             interaction_action=InteractionAction(
                 click_element=ClickElementAction(
                     command="""get_by_role("combobox", name="Select Action Type Select")""",
                     prompt_instructions="Click the Select Action Type Select combobox",
                 )
-            )
+            ),
         ),
         ActionNode(
+            type="action_node",
             interaction_action=InteractionAction(
                 click_element=ClickElementAction(
                     command="""get_by_test_id("ActionType-option-0")""",
                     prompt_instructions="Click the View eligibility & patient info option",
                 )
-            )
+            ),
         ),
         ActionNode(
+            type="action_node",
             interaction_action=InteractionAction(
                 click_element=ClickElementAction(
                     command="""get_by_test_id("submitBtn")""",
@@ -118,6 +129,7 @@ automation = Automation(
             expect_new_tab=True,
         ),
         ActionNode(
+            type="action_node",
             interaction_action=InteractionAction(
                 click_element=ClickElementAction(
                     command="""get_by_label("Eligibility", exact=True).get_by_role("link", name="Authorizations")""",
@@ -126,6 +138,7 @@ automation = Automation(
             ),
         ),
         ActionNode(
+            type="action_node",
             extraction_action=ExtractionAction(
                 llm=LLMExtraction(
                     source=["axtree"],
@@ -138,9 +151,11 @@ automation = Automation(
             ),
         ),
         ForLoopNode(
+            type="for_loop_node",
             variable_name="authorization_numbers",
             nodes=[
                 ActionNode(
+                    type="action_node",
                     interaction_action=InteractionAction(
                         click_element=ClickElementAction(
                             command="""get_by_role("link", name="{authorization_numbers[index]}")""",
@@ -149,6 +164,7 @@ automation = Automation(
                     ),
                 ),
                 ActionNode(
+                    type="action_node",
                     extraction_action=ExtractionAction(
                         llm=LLMExtraction(
                             source=["axtree"],
@@ -167,7 +183,8 @@ automation = Automation(
                     ),
                 ),
                 ActionNode(
-                    interaction_action=InteractionAction(go_back=GoBackAction())
+                    type="action_node",
+                    interaction_action=InteractionAction(go_back=GoBackAction()),
                 ),
             ],
         ),

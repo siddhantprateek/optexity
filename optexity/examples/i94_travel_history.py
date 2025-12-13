@@ -1,9 +1,9 @@
 from optexity.schema.automation import Automation
 
-description = "I94 Example"
-endpoint_name = "i94"
+description = "I94 Travel History Example"
+endpoint_name = "get_i94_travel_history"
 automation_json = {
-    "url": "https://i94.cbp.dhs.gov/search/recent-search",
+    "url": "https://i94.cbp.dhs.gov/search/history-search",
     "nodes": [
         {
             "type": "action_node",
@@ -104,7 +104,7 @@ automation_json = {
             "extraction_action": {
                 "network_call": {
                     "extract_from": "response",
-                    "url_pattern": "https://i94.cbp.dhs.gov/api/services/i94/recent",
+                    "url_pattern": "https://i94.cbp.dhs.gov/api/services/travel/history",
                 }
             },
         },

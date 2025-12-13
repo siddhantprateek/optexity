@@ -78,9 +78,40 @@ You can view the task run in the https://dashboard.optexity.com. The task run wi
 
 ![I94 Task Run](/images/i94_task.png)
 
+---
 
+# I94 Travel History
 
+A similar automation is available for retrieving full travel history instead of just recent travel records. The `get_i94_travel_history` automation follows the same pattern but uses different endpoints:
 
+- **URL**: `https://i94.cbp.dhs.gov/search/history-search`
+- **Network extraction**: `https://i94.cbp.dhs.gov/api/services/travel/history`
+
+## Add automation to the dashboard
+
+```bash
+ENV_PATH=.env python optexity/examples/add_example.py --example get_i94_travel_history
+```
+
+## Invoke the `get_i94_travel_history` endpoint
+
+```bash
+curl -X POST http://localhost:9000/inference \
+  -H "Content-Type: application/json" \
+  -d '{
+    "endpoint_name": "get_i94_travel_history",
+    "input_parameters": {
+      "first_name": ["John"],
+      "last_name": ["Doe"],
+      "nationality": ["IND"],
+      "date_of_birth": ["01/01/1990"],
+      "document_number": ["1234567890"]
+    },
+    "unique_parameter_names": []
+  }'
+```
+
+The automation structure is identical to the recent search example, with only the URL and network call pattern differing. The full Python definition lives in `optexity/examples/i94_travel_history.py`.
 
 ---
 

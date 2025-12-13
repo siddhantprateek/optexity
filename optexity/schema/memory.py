@@ -12,7 +12,7 @@ class NetworkRequest(BaseModel):
     url: str
     method: str
     headers: dict
-    body: str | bytes | None
+    body: str | bytes | None | dict | Any
 
 
 class NetworkError(BaseModel):

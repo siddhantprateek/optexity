@@ -21,32 +21,36 @@ automation = Automation(
     ),
     nodes=[
         ActionNode(
+            type="action_node",
             interaction_action=InteractionAction(
                 select_option=SelectOptionAction(
                     command="""get_by_label("Target region")""",
                     select_values=["{target_region_option[0]}"],
                     prompt_instructions="Select an option from the field labeled 'Target region' with the value from the 'target_region_option' variable.",
                 )
-            )
+            ),
         ),
         ActionNode(
+            type="action_node",
             interaction_action=InteractionAction(
                 upload_file=UploadFileAction(
                     command="""get_by_role("button", name="Test file")""",
                     file_path="{file_path[0]}",
                     prompt_instructions="Click on the 'Test file' button.",
                 )
-            )
+            ),
         ),
         ActionNode(
+            type="action_node",
             interaction_action=InteractionAction(
                 click_element=ClickElementAction(
                     command="""get_by_role("button", name="Start test")""",
                     prompt_instructions="Click the 'Start test' button",
                 )
-            )
+            ),
         ),
         ActionNode(
+            type="action_node",
             assertion_action=AssertionAction(
                 llm=LLMAssertion(
                     extraction_instructions="Check if the file upload was successful",

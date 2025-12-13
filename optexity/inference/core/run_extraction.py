@@ -155,7 +155,7 @@ async def handle_network_call_extraction(
             and isinstance(network_call, NetworkResponse)
         ):
             memory.variables.output_data.append(
-                OutputData(json_data=network_call.model_dump())
+                OutputData(json_data=network_call.model_dump(include={"body"}))
             )
 
 

@@ -17,6 +17,7 @@ automation = Automation(
     ),
     nodes=[
         ActionNode(
+            type="action_node",
             interaction_action=InteractionAction(
                 go_to_url=GoToUrlAction(
                     url="{pdf_url[0]}",
@@ -24,6 +25,7 @@ automation = Automation(
             ),
         ),
         ActionNode(
+            type="action_node",
             interaction_action=InteractionAction(
                 download_url_as_pdf=DownloadUrlAsPdfAction(
                     download_filename="example.pdf",
