@@ -104,7 +104,9 @@ class Browser:
                 chromium_sandbox=False,
             )
 
-            self.context = await self.browser.new_context(no_viewport=True)
+            self.context = await self.browser.new_context(
+                no_viewport=True, ignore_https_errors=True
+            )
 
             async def log_request(req: Request):
                 await self.log_request(req)
