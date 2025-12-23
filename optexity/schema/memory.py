@@ -67,14 +67,13 @@ class ForLoopStatus(BaseModel):
 
 
 class Variables(BaseModel):
-    input_variables: dict[str, list[str]]
     output_data: list[OutputData] = Field(default_factory=list)
     for_loop_status: list[list[ForLoopStatus]] = Field(default_factory=list)
     generated_variables: dict = Field(default_factory=dict)
 
 
 class Memory(BaseModel):
-    variables: Variables
+    variables: Variables = Field(default_factory=Variables)
     automation_state: AutomationState = Field(default_factory=AutomationState)
     browser_states: list[BrowserState] = Field(default_factory=list)
     token_usage: TokenUsage = Field(default_factory=TokenUsage)

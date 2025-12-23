@@ -355,8 +355,11 @@ async def save_latest_memory_state_locally(
             async with aiofiles.open(step_directory / "action_node.json", "w") as f:
                 await f.write(json.dumps(node.model_dump(), indent=4))
 
-        async with aiofiles.open(step_directory / "input_variables.json", "w") as f:
-            await f.write(json.dumps(memory.variables.input_variables, indent=4))
+        async with aiofiles.open(step_directory / "input_parameters.json", "w") as f:
+            await f.write(json.dumps(task.input_parameters, indent=4))
+
+        async with aiofiles.open(step_directory / "secure_parameters.json", "w") as f:
+            await f.write(json.dumps(task.secure_parameters, indent=4))
 
         async with aiofiles.open(step_directory / "generated_variables.json", "w") as f:
             await f.write(json.dumps(memory.variables.generated_variables, indent=4))

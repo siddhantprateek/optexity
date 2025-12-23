@@ -296,15 +296,18 @@ class Parameters(BaseModel):
     def validate_parameters(self):
         reserved_parameter_names = set(["current_page_url"])
 
-        for key, values in self.input_parameters.items():
-            if key in reserved_parameter_names:
-                raise ValueError(f"Parameter name {key} is reserved")
-        for key, values in self.generated_parameters.items():
-            if key in reserved_parameter_names:
-                raise ValueError(f"Parameter name {key} is reserved")
-        for key, values in self.secure_parameters.items():
-            if key in reserved_parameter_names:
-                raise ValueError(f"Parameter name {key} is reserved")
+        for d in [
+            self.input_parameters,
+            self.generated_parameters,
+            self.secure_parameters,
+        ]:
+            for key in d.keys():
+                if key in reserved_parameter_names:
+                    raise ValueError(f"Parameter name {key} is reserved")
+                if not key.isidentifier():
+                    raise ValueError(
+                        f"Parameter name {key} is not a valid variable name"
+                    )
         return self
 
 

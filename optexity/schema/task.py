@@ -10,7 +10,7 @@ from typing import Literal, Optional
 from PIL import Image
 from pydantic import BaseModel, Field, computed_field, model_validator
 
-from optexity.schema.automation import Automation
+from optexity.schema.automation import Automation, SecureParameter
 from optexity.schema.memory import ForLoopStatus
 from optexity.schema.token_usage import TokenUsage
 
@@ -52,6 +52,7 @@ class Task(BaseModel):
     endpoint_name: str
     automation: Automation
     input_parameters: dict[str, list[str | int | float | bool]]
+    secure_parameters: dict[str, list[SecureParameter]]
     unique_parameter_names: list[str]
     unique_parameters: dict[str, list[str]] | None = None
     created_at: datetime
@@ -95,6 +96,7 @@ class Task(BaseModel):
 
     @model_validator(mode="after")
     def validate_unique_parameters(self):
+        ## TODO: we do not do dedup using secure parameters yet, need to add support for that
         if len(self.unique_parameter_names) > 0:
             self.unique_parameters = {
                 unique_parameter_name: self.input_parameters[unique_parameter_name]
@@ -102,22 +104,16 @@ class Task(BaseModel):
             }
             self.dedup_key = json.dumps(self.unique_parameters, sort_keys=True)
 
-        if (
-            self.automation.parameters.input_parameters.keys()
-            != self.input_parameters.keys()
-        ):
-            missing_keys = (
-                self.automation.parameters.input_parameters.keys()
-                - self.input_parameters.keys()
-            )
-            extra_keys = (
-                self.input_parameters.keys()
-                - self.automation.parameters.input_parameters.keys()
-            )
-
-            raise ValueError(
-                f"Please provide exactly the same input parameters as the automation. Missing keys: {missing_keys}, Extra keys: {extra_keys}"
-            )
+        for a, b in [
+            (self.automation.parameters.input_parameters, self.input_parameters),
+            (self.automation.parameters.secure_parameters, self.secure_parameters),
+        ]:
+            if a.keys() != b.keys():
+                missing_keys = a.keys() - b.keys()
+                extra_keys = b.keys() - a.keys()
+                raise ValueError(
+                    f"Please provide exactly the same {a} as the automation. Missing keys: {missing_keys}, Extra keys: {extra_keys}"
+                )
 
         return self
 

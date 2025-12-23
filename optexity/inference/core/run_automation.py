@@ -28,19 +28,8 @@ from optexity.inference.core.run_interaction import (
 from optexity.inference.core.run_python_script import run_python_script_action
 from optexity.inference.infra.browser import Browser
 from optexity.schema.actions.interaction_action import DownloadUrlAsPdfAction
-from optexity.schema.automation import (
-    ActionNode,
-    ForLoopNode,
-    IfElseNode,
-    SecureParameter,
-)
-from optexity.schema.memory import (
-    BrowserState,
-    ForLoopStatus,
-    Memory,
-    OutputData,
-    Variables,
-)
+from optexity.schema.automation import ActionNode, ForLoopNode, IfElseNode
+from optexity.schema.memory import BrowserState, ForLoopStatus, Memory, OutputData
 from optexity.schema.task import Task
 from optexity.utils.settings import settings
 
@@ -68,7 +57,7 @@ async def run_automation(task: Task, child_process_id: int):
     browser = None
     try:
         await start_task_in_server(task)
-        memory = Memory(variables=Variables(input_variables=task.input_parameters))
+        memory = Memory()
         browser = Browser(
             memory=memory,
             headless=False,
@@ -128,7 +117,6 @@ async def run_automation(task: Task, child_process_id: int):
                 full_automation.append(node.model_dump())
                 await run_action_node(
                     node,
-                    task.automation.parameters.secure_parameters,
                     task,
                     memory,
                     browser,
@@ -242,7 +230,6 @@ async def run_final_logging(
 
 async def run_action_node(
     action_node: ActionNode,
-    secure_parameters: dict[str, list[SecureParameter]],
     task: Task,
     memory: Memory,
     browser: Browser,
@@ -254,8 +241,8 @@ async def run_action_node(
     memory.automation_state.step_index += 1
     memory.automation_state.try_index = 0
 
-    await action_node.replace_variables(memory.variables.input_variables)
-    await action_node.replace_variables(secure_parameters)
+    await action_node.replace_variables(task.input_parameters)
+    await action_node.replace_variables(task.secure_parameters)
     await action_node.replace_variables(memory.variables.generated_variables)
 
     ## TODO: optimize this by taking screenshot and axtree only if needed
@@ -333,11 +320,11 @@ async def sleep_for_page_to_load(browser: Browser, sleep_time: float):
         pass
 
 
-def evaluate_condition(condition: str, memory: Memory) -> bool:
+def evaluate_condition(condition: str, memory: Memory, task: Task) -> bool:
     return eval(
         condition,
         {},
-        {**memory.variables.input_variables, **memory.variables.generated_variables},
+        {**task.input_parameters, **memory.variables.generated_variables},
     )
 
 
@@ -351,7 +338,7 @@ async def handle_if_else_node(
     logger.debug(
         f"Handling if else node {if_else_node.condition} with if nodes {if_else_node.if_nodes} and else nodes {if_else_node.else_nodes}"
     )
-    condition_result = evaluate_condition(if_else_node.condition, memory)
+    condition_result = evaluate_condition(if_else_node.condition, memory, task)
     if condition_result:
         nodes = if_else_node.if_nodes
     else:
@@ -362,7 +349,6 @@ async def handle_if_else_node(
             full_automation.append(node.model_dump())
             await run_action_node(
                 node,
-                task.automation.parameters.secure_parameters,
                 task,
                 memory,
                 browser,
@@ -382,8 +368,8 @@ async def handle_for_loop_node(
     browser: Browser,
     full_automation: list[ActionNode],
 ):
-    if for_loop_node.variable_name in memory.variables.input_variables:
-        values = memory.variables.input_variables[for_loop_node.variable_name]
+    if for_loop_node.variable_name in task.input_parameters:
+        values = task.input_parameters[for_loop_node.variable_name]
     elif for_loop_node.variable_name in memory.variables.generated_variables:
         values = memory.variables.generated_variables[for_loop_node.variable_name]
     else:
@@ -413,7 +399,6 @@ async def handle_for_loop_node(
                     full_automation.append(new_node.model_dump())
                     await run_action_node(
                         new_node,
-                        task.automation.parameters.secure_parameters,
                         task,
                         memory,
                         browser,
@@ -467,7 +452,6 @@ async def handle_for_loop_node(
                     full_automation.append(node.model_dump())
                     await run_action_node(
                         node,
-                        task.automation.parameters.secure_parameters,
                         task,
                         memory,
                         browser,
