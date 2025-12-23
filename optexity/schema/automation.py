@@ -363,3 +363,68 @@ class Automation(BaseModel):
     def validate_parameters_with_examples(cls, model: "Automation"):
         ## TODO: static check that all parameters with examples are used in the nodes
         return model
+
+    def model_dump(self, *, sort_params_by_nodes: bool = False, **kwargs):
+        """
+        Extended model_dump with option to sort parameters by node order
+
+        Args:
+            sort_params_by_nodes: If True, sort input_parameters by their
+                                 appearance order in nodes. Fails gracefully
+                                 if sorting encounters any errors.
+            **kwargs: All standard Pydantic model_dump arguments (exclude,
+                     exclude_none, exclude_defaults, etc.)
+        """
+        data = super().model_dump(**kwargs)
+
+        if sort_params_by_nodes:
+            data = self._sort_parameters_by_node_order(data)
+
+        return data
+
+    def _sort_parameters_by_node_order(self, data: dict) -> dict:
+        """
+        Sort input_parameters based on their first appearance in nodes.
+        Returns data unchanged if any error occurs.
+
+        This method searches for parameter references in the format {param_name[index]}
+        throughout the entire nodes array and reorders input_parameters accordingly.
+        Parameters that don't appear in nodes are placed at the end.
+        """
+        try:
+            import json
+            import re
+
+            # Convert nodes to string to search for all parameter references
+            nodes_str = json.dumps(data.get("nodes", []))
+            # Extract all {param_name[index]} references
+            pattern = r"\{(\w+)\[\d+\]\}"
+            matches = re.findall(pattern, nodes_str)
+            # Preserve order of first occurrence
+            param_order = []
+            seen = set()
+            for param in matches:
+                if param not in seen:
+                    param_order.append(param)
+                    seen.add(param)
+            # Reorder input_parameters if they exist
+            if "parameters" in data and "input_parameters" in data["parameters"]:
+                old_params = data["parameters"]["input_parameters"]
+                sorted_params = {}
+                # Add params in order they appear in nodes
+                for param_name in param_order:
+                    if param_name in old_params:
+                        sorted_params[param_name] = old_params[param_name]
+                # Add remaining params that don't appear in nodes (at the end)
+                for param_name, param_value in old_params.items():
+                    if param_name not in sorted_params:
+                        sorted_params[param_name] = param_value
+                data["parameters"]["input_parameters"] = sorted_params
+            return data
+
+        except Exception as e:
+            # Log the error if logging is available
+            logger.warning(f"Failed to sort parameters by node order: {e}")
+
+            # Return original data unchanged
+            return data
