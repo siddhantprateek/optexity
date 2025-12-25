@@ -204,8 +204,8 @@ For detailed documentation, visit our [documentation site](https://docs.optexity
 
 - [Recording First Automation](https://docs.optexity.com/docs/getting_started/recording-first-inference)
 - [Running First Inference](https://docs.optexity.com/docs/getting_started/running-first-inference)
-- [Local Setup](https://docs.optexity.com/docs/building_automations/local-setup)
-- [Building Automations](https://docs.optexity.com/docs/building_automations/quickstart)
+- [Local Setup](https://docs.optexity.com/docs/building-automations/local-setup)
+- [Building Automations](https://docs.optexity.com/docs/building-automations/quickstart)
 - [API Reference](https://docs.optexity.com/docs/api-reference/introduction)
 
 ## Roadmap

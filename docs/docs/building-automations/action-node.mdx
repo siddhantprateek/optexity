@@ -1,0 +1,44 @@
+---
+title: Action Node
+description: Understanding the Action Node of Optexity automations
+---
+
+## Action Node
+
+An `Action Node` represents a single atomic action in your automation. Each node must contain exactly one action type.
+
+```json
+{
+    "interaction_action": {
+        "click_element": {
+            "command": "get_by_role(\"button\", name=\"Submit\")",
+            "prompt_instructions": "Click the submit button"
+        }
+    },
+    "before_sleep_time": 0.0,
+    "end_sleep_time": 1.0,
+    "expect_new_tab": false
+}
+```
+
+### Action Types
+
+Each Action Node can contain exactly one of these action types:
+
+| Action Type            | Purpose                                                  | Read More |
+| ---------------------- | -------------------------------------------------------- | -------------------------------------------------------- |
+| `interaction_action`   | User interactions: click, type, select, scroll, navigate | [Interaction Actions](/docs/action-types/interaction-action) |
+| `extraction_action`    | Data extraction: LLM-based, network calls, screenshots   | [Extraction Actions](/docs/action-types/extraction-action) |
+| `assertion_action`     | Verify conditions on the page                            | [Assertion Actions](/docs/action-types/assertion-action) |
+| `python_script_action` | Execute custom Python code                               | [Python Script Actions](/docs/action-types/python-script-action) |
+
+### Timing Properties
+
+| Property                | Type    | Default                                     | Description                                 |
+| ----------------------- | ------- | ------------------------------------------- | ------------------------------------------- |
+| `before_sleep_time`     | `float` | `0.0` (or `3.0` for extractions)            | Seconds to wait before executing the action |
+| `end_sleep_time`        | `float` | `1.0` (or `0.0` for extractions/assertions) | Seconds to wait after the action completes  |
+| `expect_new_tab`        | `bool`  | `False`                                     | Whether this action opens a new tab         |
+| `max_new_tab_wait_time` | `float` | `0.0` (or `10.0` if `expect_new_tab=True`)  | Max seconds to wait for new tab             |
+
+Detailed information about timing properties is available in the [Timing & Retries](/docs/advanced/timing-retries) documentation.

@@ -3,107 +3,67 @@ title: Inference Endpoint
 description: Submit automation tasks to the inference server
 ---
 
-The inference endpoint is the primary way to submit automation tasks to an Optexity inference server.
+## POST /inference
 
-### Local Inference Endpoint
+Submits automation tasks to an Optexity inference server for asynchronous execution.
 
-The local inference endpoint is used for local development and testing. It does not require any authentication. This is free to use and is not limited to any number of requests.
+## Description
 
-```bash
-POST http://localhost:9000/inference
-Content-Type: application/json
-Authorization: None (No authentication)
-```
+The inference endpoint is the primary way to submit automation tasks to an Optexity inference server. Tasks are enqueued and executed asynchronously in the background. The endpoint supports both local development and cloud production deployments.
 
-### Cloud Inference Endpoint
+## Authentication
 
-The cloud inference endpoint is used for production deployments. It requires an API key to be provided in the Authorization header. The API key can be found in the Optexity dashboard under the "API Keys" section. This requires a paid plan. Please contact us at founders@optexity.com to get a paid plan.
+<Info>
+  Local endpoint (`http://localhost:9000/inference`) does not require authentication and is free to use for development and testing.
+</Info>
 
-```bash
-POST https://api.optexity.com/api/v1/inference
-Content-Type: application/json
-Authorization: x-api-key <API_KEY>
-```
+<Info>
+  Cloud endpoint (`https://api.optexity.com/api/v1/inference`) requires authentication with an API key in the request header. API keys can be found in the Optexity dashboard under the "API Keys" section. This requires a paid plan. Contact us at founders@optexity.com to get a paid plan.
+</Info>
 
-### Request Body
+## Parameters
 
-```json
-{
-    "endpoint_name": "login-flow",
-    "input_parameters": {
-        "content": ["This is the content of the page"]
-    },
-    "secure_parameters": {
-        "username": [
-            {
-                "onepassword": {
-                    "vault_name": "optexity_automation",
-                    "item_name": "fedex",
-                    "field_name": "username"
-                }
-            }
-        ],
-        "password": [
-            {
-                "onepassword": {
-                    "vault_name": "optexity_automation",
-                    "item_name": "fedex",
-                    "field_name": "password"
-                }
-            }
-        ]
-    },
-    "unique_parameter_names": ["username"]
-}
-```
+### Headers
 
-### Schema: InferenceRequest
+- **`Content-Type`** `string` *required*
+  
+  Must be set to `application/json`
 
-<ParamField path="endpoint_name" type="str" required>
-    Name of the automation endpoint to execute. Must match a recording/automation configured in the
-    Optexity control plane.
-</ParamField>
+- **`Authorization`** `string` *required* (cloud endpoint only)
+  
+  API key for authentication. Format: `x-api-key YOUR_API_KEY`
+  
+  Not required for local endpoint
 
-<ParamField path="input_parameters" type="dict[str, list[str]]" required>
-    Input values for the automation. Keys are parameter names, values are lists of strings. Every
-    parameter defined in the automation's `input_parameters` should be provided here. If parameter is given an empty list and it is used in `input text` action, the action will be skipped.
-</ParamField>
+### Body Parameters
 
-<ParamField path="secure_parameters" type="dict[str, list[SecureParameter]]" optional>
-    Secure parameters for the automation. Keys are parameter names, values are lists of secure parameters. Every
-    parameter defined in the automation's `secure_parameters` should be provided here. These are used to securely store sensitive information like passwords, API keys, and other secrets. Please refer to the [Secure Parameters API Reference](/api-reference/schema-reference/secure-parameters) and [One Password Integration](/docs/advanced/onepassword) documentation for more information.
-</ParamField>
+- **`endpoint_name`** `string` *required*
+  
+  Name of the automation endpoint to execute. Must match a recording/automation configured in the Optexity control plane.
 
-<ParamField path="unique_parameter_names" type="list[str]" optional>
-    Subset of keys from `input_parameters` that uniquely identify this task. Used for deduplication.
-    Every name in this list must exist as a key in `input_parameters`.
-</ParamField>
+- **`input_parameters`** `dict[str, list[str]]` *required*
+  
+  Input values for the automation. Keys are parameter names, values are lists of strings. Every parameter defined in the automation's `input_parameters` should be provided here.
+  
+  If a parameter is given an empty list and it is used in an `input text` action, the action will be skipped.
 
-### Response
+- **`secure_parameters`** `dict[str, list[SecureParameter]]` *optional*
+  
+  Secure parameters for the automation. Keys are parameter names, values are lists of secure parameters. Every parameter defined in the automation's `secure_parameters` should be provided here.
+  
+  These are used to securely store sensitive information like passwords, API keys, and other secrets. Please refer to the [Secure Parameters API Reference](/api-reference/schema-reference/secure-parameters) and [One Password Integration](/docs/advanced/onepassword) documentation for more information.
 
-#### Success (202 Accepted)
+- **`unique_parameter_names`** `list[str]` *optional*
+  
+  Subset of keys from `input_parameters` that uniquely identify this task. Used for deduplication.
+  
+  Every name in this list must exist as a key in `input_parameters`.
 
-```json
-{
-    "success": true,
-    "message": "Task has been allocated"
-}
-```
+## Code Examples
 
-The task has been enqueued and will execute asynchronously.
+<CodeGroup>
 
-#### Error (4xx/5xx)
-
-```json
-{
-    "success": false,
-    "message": "Error description"
-}
-```
-
-### Example Request
-
-```bash
+```bash cURL
 curl -X POST http://localhost:9000/inference \
   -H "Content-Type: application/json" \
   -d '{
@@ -117,7 +77,174 @@ curl -X POST http://localhost:9000/inference \
   }'
 ```
 
-### How It Works
+```python Python
+import requests
+
+response = requests.post(
+    "http://localhost:9000/inference",
+    headers={"Content-Type": "application/json"},
+    json={
+        "endpoint_name": "login-flow",
+        "input_parameters": {
+            "email": ["user@example.com"],
+            "password": ["secret123"],
+        },
+        "unique_parameter_names": ["email"],
+    },
+)
+
+if response.status_code == 202:
+    print("Task submitted successfully")
+else:
+    print(f"Error: {response.json()}")
+```
+
+```javascript JavaScript
+const response = await fetch('http://localhost:9000/inference', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    endpoint_name: 'login-flow',
+    input_parameters: {
+      email: ['user@example.com'],
+      password: ['secret123']
+    },
+    unique_parameter_names: ['email']
+  })
+});
+
+const data = await response.json();
+if (response.status === 202) {
+  console.log('Task submitted successfully');
+} else {
+  console.error('Error:', data);
+}
+```
+
+</CodeGroup>
+
+### Example with Secure Parameters
+
+```bash
+curl -X POST http://localhost:9000/inference \
+  -H "Content-Type: application/json" \
+  -d '{
+    "endpoint_name": "login-flow",
+    "input_parameters": {
+      "content": ["This is the content of the page"]
+    },
+    "secure_parameters": {
+      "username": [
+        {
+          "onepassword": {
+            "vault_name": "optexity_automation",
+            "item_name": "fedex",
+            "field_name": "username"
+          }
+        }
+      ],
+      "password": [
+        {
+          "onepassword": {
+            "vault_name": "optexity_automation",
+            "item_name": "fedex",
+            "field_name": "password"
+          }
+        }
+      ]
+    },
+    "unique_parameter_names": ["username"]
+  }'
+```
+
+## Response
+
+### Success Response (202 Accepted)
+
+The task has been enqueued and will execute asynchronously.
+
+```json
+{
+  "success": true,
+  "message": "Task has been allocated"
+}
+```
+
+**Response Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | boolean | Indicates whether the request was successful |
+| `message` | string | Status message describing the result |
+
+## Error Responses
+
+### 400 Bad Request
+
+Returned when request parameters are invalid.
+
+```json
+{
+  "success": false,
+  "message": "unique_parameter_names contains key 'username' not found in input_parameters"
+}
+```
+
+**Common causes:**
+- `unique_parameter_names` contains a key that doesn't exist in `input_parameters`
+- Parameter values are not lists of strings
+- Missing required `endpoint_name` or `input_parameters` fields
+
+### 404 Not Found
+
+Returned when the specified endpoint does not exist.
+
+```json
+{
+  "success": false,
+  "message": "Endpoint 'invalid-endpoint' not found"
+}
+```
+
+**Common causes:**
+- `endpoint_name` doesn't match any configured automation
+- Endpoint has been deleted or is not accessible
+
+### 401 Unauthorized
+
+Returned when authentication fails (cloud endpoint only).
+
+```json
+{
+  "success": false,
+  "message": "Invalid or missing API key"
+}
+```
+
+**Common causes:**
+- Missing `Authorization` header
+- Invalid API key format
+- Expired or revoked API key
+
+### 500 Internal Server Error
+
+Returned when an unexpected server error occurs.
+
+```json
+{
+  "success": false,
+  "message": "Control plane error: Network issue or invalid API key"
+}
+```
+
+**Common causes:**
+- Network connectivity issues with the control plane
+- Control plane service unavailable
+- Internal server configuration errors
+
+## How It Works
 
 1. The inference server receives the `InferenceRequest`
 2. It forwards the request to the Optexity control plane at `api.optexity.com`
@@ -126,9 +253,26 @@ curl -X POST http://localhost:9000/inference \
 5. A `202 Accepted` response is returned immediately
 6. The browser automation executes asynchronously
 
-### Task Object
+## Validation
 
-The control plane returns a `Task` with this structure:
+The endpoint validates:
+
+1. All `unique_parameter_names` exist in `input_parameters`
+2. All parameter values are lists of strings
+3. The `endpoint_name` matches a valid automation
+
+## Configuration
+
+The endpoint uses these settings from environment variables:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `API_KEY` | Required | API key for control plane authentication |
+| `INFERENCE_ENDPOINT` | `api/v1/inference` | Control plane endpoint path |
+
+<AccordionGroup>
+  <Accordion title="Task Object Structure">
+    The control plane returns a `Task` object with this structure:
 
 ```python
 class Task:
@@ -165,54 +309,8 @@ class Task:
     # Authentication
     api_key: str
 ```
-
-### Validation
-
-The endpoint validates:
-
-1. All `unique_parameter_names` exist in `input_parameters`
-2. All parameter values are lists of strings
-3. The `endpoint_name` matches a valid automation
-
-### Error Cases
-
-| Error               | Cause                                                           | Solution                          |
-| ------------------- | --------------------------------------------------------------- | --------------------------------- |
-| Missing parameter   | `unique_parameter_names` contains key not in `input_parameters` | Add the key to `input_parameters` |
-| Invalid endpoint    | `endpoint_name` doesn't match any automation                    | Check the endpoint name           |
-| Control plane error | Network issue or invalid API key                                | Check `API_KEY` and network       |
-
-### Configuration
-
-The endpoint uses these settings from `ENV_PATH`:
-
-| Setting              | Default            | Description                              |
-| -------------------- | ------------------ | ---------------------------------------- |
-| `API_KEY`            | Required           | API key for control plane authentication |
-| `INFERENCE_ENDPOINT` | `api/v1/inference` | Control plane endpoint path              |
-
-### Python Example
-
-```python
-import requests
-
-response = requests.post(
-    "http://localhost:9000/inference",
-    json={
-        "endpoint_name": "login-flow",
-        "input_parameters": {
-            "email": ["user@example.com"],
-            "password": ["secret123"],
-        },
-        "unique_parameter_names": ["email"],
-    },
-)
-
-if response.status_code == 202:
-    print("Task submitted successfully")
-else:
-    print(f"Error: {response.json()}")
-```
+  </Accordion>
+</AccordionGroup>
 
 ## Related
 

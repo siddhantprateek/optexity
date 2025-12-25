@@ -1,0 +1,95 @@
+---
+title: For Loop Node
+description: Understanding the For Loop Node of Optexity automations
+---
+
+
+
+## For Loop Node
+
+Use `For Loop Node` to iterate over extracted data. This is powerful for processing lists of items, like clicking through search results or processing multiple records.
+
+`nodes` is a list of `action_node` or `if_else_node` nodes.
+`reset_nodes` is a list of `action_node` or `if_else_node` nodes.
+`on_error_in_loop` is the action to execute if an error occurs in the loop. It can be `continue`, `break` or `raise`. The default is to raise an error.
+
+```json
+{
+    "variable_name": "order_ids",
+    "nodes": [
+        {
+            "interaction_action": {
+                "click_element": {
+                    "command": "get_by_role(\"link\", name=\"{order_ids[index]}\")",
+                    "prompt_instructions": "Click order {order_ids[index]}"
+                }
+            }
+        }
+        // More actions for each iteration...
+    ],
+    "reset_nodes": [
+        {
+            "interaction_action": {
+                "close_all_but_one_tab": {
+                    "matching_url": "https://example.com/order-confirmation"
+                }
+            }
+        }
+    ],
+    "on_error_in_loop": "continue"
+}
+```
+
+The loop iterates over all values in the specified variable. Inside the loop, use `{variable_name[index]}` to access the current iteration's value. The variable can be from input parameters, generated parameters or secure parameters.
+
+when giving in input parameters, you know exact values in advance.
+
+In other cases you might want to go to certain page, then loop over all the pages or values that you see on the page. in that case you will first extract the values and then use them in the loop. for more information about extraction actions, see [Extraction Actions](/docs/action-types/extraction-action).
+
+Keep in mind that you need to assign the extracted values to a variable and then use that variable in the loop. otherwise loop cannot directly use the extracted values.
+
+Currently nested loops are not supported.
+
+### How It Works
+
+1. Before the loop, an extraction action populates `order_ids` with values like `["ORD-001", "ORD-002", "ORD-003"]`
+2. The loop runs 3 times, once for each order ID
+3. On each iteration, `{order_ids[index]}` is replaced with the current value
+4. After we finish a loop, we can call optional `reset_nodes` to execute actions to reset the state of the browser after the loop. For example, we can close the current tab and go back to the previous tab. This is useful if we want to clear the state of the browser after the loop.
+5. We can also specify what to do if an error occurs in the loop. We can continue the loop, break the loop, or raise an error. The default is to raise an error.
+
+## Reset Nodes
+
+Lot of times the general usecase is you navigate to some page and then you see multiple links fo pages where the task is to go inside each page, perform action (eg download a file) and then go back to the previous page and repeat the process for all the pages.
+
+Now as the automation is stateless, after one iteration of the loop, the browser will be on the last page and not on the previous page. So we need to reset the browser to the previous page after the loop. Reset nodes are executed after each value of the loop is processed.
+
+### TIPS for Reset Nodes
+
+You should generally try using actions which can deterministically reset the state of the browser. For example, `close_all_tabs_until` is a good action to use because it will close all tabs till a condition is met. Say you clickd on some link and it opened a new tab, you can close all tabs till the new tab is opened using `close_all_tabs_until` action. This is preferrred than hardcoding the number of tabs to close as each iteration of the loop may open a different number of tabs or have some error because of which the number of tabs to close may not be known in advance.
+
+`go_back` is generally not a good action to use because if error occurs in the loop, the automation will go back to the previous page and not on the page where the error occurred.
+
+`go_to_url` is a good action to use because it will navigate to the url and reset the state of the browser. generally homepage is a good url to navigate to.
+
+`click_element` is a good action to use because if you can click on the navbar where some button on each page is persistant and can take you to the right page.
+
+Verdict: Try using actions which can deterministically reset the state of the browser. actions like `go_back` are generally not a good idea as it may not work if error occurs in the loop.
+
+## On Error in Loop
+
+We can specify what to do if an error occurs in the loop. We can continue the loop, break the loop, or raise an error. The default is to raise an error.
+
+```json
+{
+    "on_error_in_loop": "continue"
+}
+```
+
+The default is to raise an error.
+
+`continue` will continue the loop from the next iteration. This is useful if we want to skip the current iteration and continue with the next one in the loop. Eg if we are downloading multiple files and one of the files is not found, we can continue the loop and download the next file. This will not fail the automation.
+
+`break` will break the loop and continue with the next node. This is useful if we want to stop the loop and continue with the next node outside the loop. This will not fail the automation.
+
+`raise` will raise an error and stop the loop. This is useful if we want the whole automation to fail if an error occurs in the loop.

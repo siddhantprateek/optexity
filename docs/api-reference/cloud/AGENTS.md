@@ -36,60 +36,96 @@ State authentication requirements clearly at the top:
 
 ### Structure Parameters by Type
 
-Group parameters into clear sections:
+Group parameters into clear sections using lists with descriptions on new lines:
 
 ```markdown
 ## Parameters
 
 ### Path Parameters
 
-| Parameter | Type   | Required | Description                    |
-| --------- | ------ | -------- | ------------------------------ |
-| `userId`  | string | Yes      | Unique identifier for the user |
+- **`userId`** `string` _required_
+
+    Unique identifier for the user
 
 ### Query Parameters
 
-| Parameter | Type    | Required | Description                             |
-| --------- | ------- | -------- | --------------------------------------- |
-| `limit`   | integer | No       | Maximum number of results (default: 10) |
-| `offset`  | integer | No       | Number of results to skip (default: 0)  |
+- **`limit`** `integer` _optional_
+
+    Maximum number of results to return
+
+    Default: `10`
+
+- **`offset`** `integer` _optional_
+
+    Number of results to skip for pagination
+
+    Default: `0`
 
 ### Headers
 
-| Header          | Type   | Required | Description                     |
-| --------------- | ------ | -------- | ------------------------------- |
-| `Authorization` | string | Yes      | Bearer token for authentication |
-| `Content-Type`  | string | Yes      | Must be `application/json`      |
+- **`Authorization`** `string` _required_
+
+    Bearer token for authentication. Format: `Bearer YOUR_API_KEY`
+
+- **`Content-Type`** `string` _required_
+
+    Must be set to `application/json`
 
 ### Body Parameters
 
-| Parameter | Type   | Required | Description                 |
-| --------- | ------ | -------- | --------------------------- |
-| `email`   | string | Yes      | User's email address        |
-| `name`    | string | Yes      | User's full name            |
-| `role`    | string | No       | User role (default: "user") |
+- **`email`** `string` _required_
+
+    User's email address. Must be a valid email format.
+
+- **`name`** `string` _required_
+
+    User's full name
+
+- **`role`** `string` _optional_
+
+    User role assignment
+
+    Default: `"user"`
+
+    Allowed values: `"user"`, `"admin"`, `"moderator"`
 ```
 
 ### Parameter Details
 
 For each parameter include:
 
-- Clear, descriptive name
-- Data type (string, integer, boolean, object, array)
-- Whether required or optional
-- Brief description including defaults, constraints, or format requirements
+- Parameter name in bold with backticks: **`paramName`**
+- Data type in backticks on the same line
+- Required/optional status in italics
+- Description on a new line with proper indentation
+- Additional details (defaults, constraints, allowed values, format) as separate indented lines
 
-For complex nested objects, show the structure:
+For complex nested objects, show the structure with proper indentation:
 
 ```markdown
 ### Body Parameters
 
-| Parameter          | Type   | Required | Description                    |
-| ------------------ | ------ | -------- | ------------------------------ |
-| `user`             | object | Yes      | User information object        |
-| `user.email`       | string | Yes      | User's email address           |
-| `user.profile`     | object | No       | Optional profile information   |
-| `user.profile.bio` | string | No       | User biography (max 500 chars) |
+- **`user`** `object` _required_
+
+    User information object containing profile details
+    - **`user.email`** `string` _required_
+
+        User's email address. Must be a valid email format.
+
+    - **`user.profile`** `object` _optional_
+
+        Optional profile information for the user
+        - **`user.profile.bio`** `string` _optional_
+
+            User biography text
+
+            Maximum length: 500 characters
+
+        - **`user.profile.avatar`** `string` _optional_
+
+            URL to user's avatar image
+
+            Must be a valid HTTPS URL
 ```
 
 ## Code Examples
@@ -195,7 +231,7 @@ Show the successful response with status code and structure:
 
 ### Error Responses
 
-Document all possible error scenarios:
+Document all possible error scenarios. Do not include ones that you do not have information for.
 
 ```markdown
 ## Error Responses

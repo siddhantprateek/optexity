@@ -1,0 +1,70 @@
+
+## Variables and Memory
+
+During execution, Optexity maintains a memory system that tracks:
+
+-   **Input Variables**: The `input_parameters` you provided
+-   **Generated Variables**: Values extracted during execution
+-   **Output Data**: Structured data extracted from pages
+-   **Browser State**: Current URL, page content, screenshots
+
+### Variable Flow Example
+
+```json
+{
+    "parameters": {
+        "input_parameters": {
+            "search_term": ["laptop"]
+        },
+        "generated_parameters": {
+            "product_ids": []
+        }
+    },
+    "nodes": [
+        {
+            "interaction_action": {
+                "input_text": {
+                    "input_text": "{search_term[0]}"
+                }
+            }
+        },
+        {
+            "extraction_action": {
+                "llm": {
+                    "extraction_format": {
+                        "product_ids": "List[str]"
+                    },
+                    "output_variable_names": ["product_ids"]
+                }
+            }
+        },
+        {
+            "variable_name": "product_ids",
+            "nodes": [
+                {
+                    "interaction_action": {
+                        "click_element": {
+                            "prompt_instructions": "Click product {product_ids[index]}"
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}
+```
+
+## Execution Model
+
+Optexity executes automations with these guarantees:
+
+1. **Sequential Execution**: Nodes execute in order, one at a time
+2. **Retry Logic**: Failed actions retry up to `max_tries` times
+3. **AI Fallback**: If a locator fails, the LLM uses `prompt_instructions` to find the element
+4. **State Tracking**: Each step's browser state is recorded for debugging
+
+## Next Steps
+
+-   Learn about [Locators](/docs/locators) for finding elements
+-   Explore [Parameters and Variables](/docs/parameters-variables) in depth
+-   See all [Interaction Actions](/docs/interaction-actions) available

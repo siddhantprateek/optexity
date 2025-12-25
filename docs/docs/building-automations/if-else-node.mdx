@@ -1,0 +1,43 @@
+---
+title: If Else Node
+description: Understanding the If Else Node of Optexity automations
+---
+
+
+## If Else Node
+
+Use `If Else Node` for conditional execution based on a condition string. 
+
+`if_nodes` and `else_nodes` are lists of `action_node`, `for_loop_node` or `if_else_node` nodes.
+Nesting `if_else_node` allows you to create complex conditional logic. It helps create branching in automations where most automation is same but some part is different.
+
+```json
+{
+    "condition": "has_captcha",
+    "if_nodes": [
+        // Actions to execute if condition is true
+        {
+            "interaction_action": {
+                // ... action definition
+            }
+        }
+    ],
+    "else_nodes": [
+        // Actions to execute if condition is false
+        {
+            "interaction_action": {
+                // ... action definition
+            }
+        }
+    ]
+}
+```
+
+Condiiton is a python like expresstion that is evaluated to a boolean value. It can use variables from `input_parameters`, `generated_parameters` and `secure_parameters`.
+
+```json
+{
+    "condition": "{variable_name[0]} is not None and {variable_name[0]} != 'random_value'",
+}
+```
+

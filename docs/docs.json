@@ -23,28 +23,35 @@
                     {
                         "group": "Building Automations",
                         "pages": [
-                            "/docs/building_automations/local-setup",
-                            "/docs/building_automations/quickstart",
-                            "/docs/building_automations/core-concepts",
-                            "/docs/building_automations/locators",
-                            "/docs/building_automations/parameters-variables",
+                            "/docs/building-automations/local-setup",
+                            "/docs/building-automations/quickstart",
+                            "/docs/building-automations/automation-structure",
+                            "/docs/building-automations/parameters",
+                            "/docs/building-automations/action-node",
+                            "/docs/building-automations/if-else-node",
+                            "/docs/building-automations/for-loop-node",
+                            "/docs/building-automations/locators",
+                            "/docs/building-automations/parameters-variables",
                             "/docs/getting_started/inference-api"
                         ]
                     },
                     {
                         "group": "Action Types",
                         "pages": [
-                            "/docs/interaction-actions",
-                            "/docs/extraction-actions",
-                            "/docs/control-flow",
-                            "/docs/two-factor-auth"
+                            "/docs/action-types/interaction-action",
+                            "/docs/action-types/extraction-action",
+                            "/docs/action-types/assertion-action",
+                            "/docs/action-types/python-script-action",
+                            "/docs/action-types/agentic-tasks",
+                            "/docs/action-types/control-flow",
+                            "/docs/action-types/two-factor-auth"
                         ]
                     },
                     {
                         "group": "Advanced",
                         "pages": [
-                            "/docs/timing-retries",
-                            "/docs/downloads-files",
+                            "/docs/advanced/timing-retries",
+                            "/docs/advanced/downloads-files",
                             "/docs/agentic-tasks",
                             "/docs/best-practices",
                             "/docs/advanced/callbacks",
@@ -53,6 +60,10 @@
                             "/docs/advanced/orchestration",
                             "/docs/advanced/proxy-setup"
                         ]
+                    },
+                    {
+                        "group": "FAQs",
+                        "pages": ["/docs/faqs/faqs"]
                     }
                 ]
             },

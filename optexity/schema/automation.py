@@ -311,6 +311,7 @@ class Parameters(BaseModel):
         return self
 
 
+## TODO: fix expected downloads for ForLoop
 class Automation(BaseModel):
     browser_channel: Literal["chromium", "chrome"] = "chromium"
     expected_downloads: int = 0

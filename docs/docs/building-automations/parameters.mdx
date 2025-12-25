@@ -1,0 +1,161 @@
+---
+title: Parameters
+description: Understanding the parameters of Optexity automations
+---
+
+Parameters are the backbone of data flow in Optexity automations. They allow you to pass data in, extract data out, and use dynamic values throughout your workflow.
+
+## Parameters
+
+Parameters define the data flowing through your automation. They're divided into three categories:
+
+| Type                     | Purpose                                                           | When Set                                       |
+| ------------------------ | ----------------------------------------------------------------- | ---------------------------------------------- |
+| **Input Parameters**     | Data provided before execution                                    | Before automation runs                         |
+| **Generated Parameters** | Data extracted during execution                                   | During automation via extraction actions       |
+| **Secure Parameters**    | Sensitive information like passwords, API keys, and other secrets | Stored in secure environment like One Password |
+
+### Input Parameters
+
+Values you provide before execution starts. Think of these as the "inputs" to your automation:
+
+```json
+{
+    "input_parameters": {
+        "family_name": ["Doe"],
+        "first_name": ["John"],
+        "search_query": ["laptop", "monitor"]
+    }
+}
+```
+
+### Generated Parameters
+
+Values extracted during execution. These are populated by extraction actions and can be used in subsequent steps:
+
+```json
+{
+    "generated_parameters": {
+        "order_id": [],
+        "confirmation": []
+    }
+}
+```
+
+### Secure Parameters
+
+Secure parameters are used to store sensitive information like passwords, API keys, and other secrets. They are stored in secure environment like One Password. You do not need to give exact values here. We determine the exact value during execution without exposing the sensitive information to the user. Currently, only One Password is supported. In future, we will support Amazon Secrets Manager as well.
+
+```json
+{
+    "secure_parameters": {
+        "password": [
+            {
+                "onepassword": {
+                    "vault_name": "test_vault",
+                    "item_name": "fedex",
+                    "field_name": "password"
+                }
+            }
+        ]
+    }
+}
+```
+
+You can learn more about secure parameters in the [One Password Integration](/docs/advanced/onepassword) documentation.
+
+You can also use TOTP codes in secure parameters. You can learn more about TOTP codes in the [TOTP Integration](/docs/advanced/totp-integration) documentation.
+
+### Adding parameters to automation
+
+All input parameters, secure parameters and generated parameters need to be declared in the parameters object of the automation. This ensures static checks in automation schema so that you do not face errors at runtime. The values of these parameters in the automation object are arbitrary. The actual values are passed in the inference request.
+
+```json
+{
+    "parameters": {
+        "input_parameters": {
+            "username": ["example_username"]
+        },
+        "secure_parameters": {
+            "password": [
+                {
+                    "onepassword": {
+                        "vault_name": "example_vault",
+                        "item_name": "example_item",
+                        "field_name": "example_field"
+                    }
+                }
+            ],
+            "authenticator_code": [
+                {
+                    "totp": {
+                        "vault_name": "example_vault",
+                        "item_name": "example_item",
+                        "field_name": "example_field"
+                    }
+                }
+            ]
+        },
+        "generated_parameters": {
+            "order_id": []
+        }
+    }
+}
+```
+
+### Sending parameters in inference request
+
+All inout parameters and secure parameters need to be passed in the inference request. These are the actual values that are used in the automation. Generated parameters are not passed in the inference request. They are populated by extraction actions during execution.
+
+```json
+{
+    "input_parameters": {
+        "username": ["actual_username"]
+    },
+    "secure_parameters": {
+        "password": [
+            {
+                "onepassword": {
+                    "type": "raw",
+                    "vault_name": "actual_vault",
+                    "item_name": "actual_item",
+                    "field_name": "actual_password_field"
+                }
+            }
+        ],
+        "authenticator_code": [
+            {
+                "totp": {
+                    "type": "totp_secret",
+                    "vault_name": "actual_vault",
+                    "item_name": "actual_item",
+                    "field_name": "actual_authenticator_code_field"
+                }
+            }
+        ]
+    }
+}
+```
+
+### Accessing Parameters
+
+Use the `{variable_name[index]}` syntax to reference parameter values:
+
+```json
+{
+    "input_text": "{username[0]}",
+    "prompt_instructions": "Click on order {order_id[index]}"
+}
+```
+
+Examples:
+
+-   `"{username[0]}"` - Access first value
+-   `"{search_query[1]}"` - Access second value
+-   `"{order_id[index]}"` - In loops, use `{variable_name[index]}` where index iterates
+
+
+Most parameters are single values. Hence to access the value, you need to use the index `0`. eg `"{username[0]}"`.
+
+
+If you are iterating over a list of values, you need to use the index `index`. eg `"{order_id[index]}"`. this will be replaced with the current value of the loop. You can find more information about loops in the [ForLoopNode](/docs/building-automations/for-loop-node) documentation.
