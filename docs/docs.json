@@ -67,14 +67,15 @@
                             "/api-reference/extraction-actions-ref",
                             "/api-reference/assertion-actions-ref",
                             "/api-reference/misc-actions-ref",
-                            "/api-reference/callback"
+                            "/api-reference/callback",
+                            "/api-reference/schema-reference/secure-parameters"
                         ]
                     },
                     {
                         "group": "HTTP API",
                         "pages": [
                             "/api-reference/introduction",
-                            "/api-reference/inference-endpoint",
+                            "/api-reference/cloud/inference-endpoint",
                             "/api-reference/health-endpoints"
                         ]
                     }
