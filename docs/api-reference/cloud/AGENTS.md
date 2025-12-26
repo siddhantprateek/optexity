@@ -183,11 +183,9 @@ const data = await response.json();
 console.log(data);
 ```
 
-</CodeGroup>
-```
+````
 
 **Code Example Guidelines:**
-
 - Use realistic, working examples
 - Replace sensitive values with placeholders (YOUR_API_KEY)
 - Show complete requests including all headers
@@ -199,21 +197,20 @@ console.log(data);
 
 Show the successful response with status code and structure:
 
-````markdown
+```markdown
 ## Response
 
 ### Success Response (200 OK)
 
 ```json
 {
-    "id": "usr_1234567890",
-    "email": "user@example.com",
-    "name": "John Doe",
-    "role": "admin",
-    "createdAt": "2024-01-15T10:30:00Z",
-    "status": "active"
+  "id": "usr_1234567890",
+  "email": "user@example.com",
+  "name": "John Doe",
+  "role": "admin",
+  "createdAt": "2024-01-15T10:30:00Z",
+  "status": "active"
 }
-```
 ````
 
 **Response Fields:**
@@ -231,7 +228,7 @@ Show the successful response with status code and structure:
 
 ### Error Responses
 
-Document all possible error scenarios. Do not include ones that you do not have information for.
+Document all possible error scenarios:
 
 ```markdown
 ## Error Responses

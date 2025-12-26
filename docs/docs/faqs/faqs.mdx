@@ -13,31 +13,55 @@ No, you can use the same automation for multiple users by using parameters.
 
 ### How do I use parameters?
 
-You can use parameters by using the `{parameter_name}` syntax in your automation.
+You can use parameters by using the `{parameter_name[0]}` syntax in your automation. If this is used in for loop, you can use `{parameter_name[index]}` syntax to access the current value of the loop. For more information, see the [Parameters](/docs/building-automations/parameters) documentation.
 
 ### How do I use secure parameters?
 
-You can use secure parameters by using the `secure_parameters` field in your automation.
+You can use secure parameters by using the `secure_parameters` field in your automation and inference request. In secure parameters you do not specify the actual value. instead you specify how you want to retrieve the value at runtime. Currently, we support One Password and TOTP. You can learn more about secure parameters in the [Secure Parameters](/docs/building-automations/parameters#secure-parameters) documentation.
 
-### I do not want to hardcode passwords in my automation. How can I use secure parameters?
+### I do not want to hardcode passwords in my automation. What opetions do I have?
+
+You can use secure parameters by using the `secure_parameters` field in your automation and inference request. In secure parameters you do not specify the actual value. instead you specify how you want to retrieve the value at runtime. Currently, we support One Password and TOTP. You can learn more about secure parameters in the [Secure Parameters](/docs/building-automations/parameters#secure-parameters) documentation.
 
 ### I do not want to send passwords in the request body. How can I use secure parameters?
 
+You can use secure parameters by using the `secure_parameters` field in your automation and inference request. In secure parameters you do not specify the actual value. instead you specify how you want to retrieve the value at runtime. Currently, we support One Password and TOTP. You can learn more about secure parameters in the [Secure Parameters](/docs/building-automations/parameters#secure-parameters) documentation.
+
 ### I want to download multiple files in single run. How can I do that?
+
+You can use `for_loop_node` to iterate over multiple values and download files. For more information, see the [For Loop Node](/docs/building-automations/for-loop-node) documentation.
 
 ### I want to do actions on multple things which i see on the page. How can I do that?
 
+You can use `for_loop_node` to iterate over multiple values and perform actions on them. For more information, see the [For Loop Node](/docs/building-automations/for-loop-node) documentation.
+
 ### I want to do one action if one condition is met and another action if another condition is met. How can I do that?
+
+You can use `if_else_node` to perform one action if one condition is met and another action if another condition is met. For more information, see the [If Else Node](/docs/building-automations/if-else-node) documentation.
 
 ### Do I need to build new automation for each condition?
 
+No. You can use `if_else_node` to perform one action if one condition is met and another action if another condition is met. For more information, see the [If Else Node](/docs/building-automations/if-else-node) documentation.
+
+### Do I need to build new automation for each loging credentials?
+
+No. You can use parameters and secure parameters to run the automation for different login credentials and not have to build the automation again. These can be sent in inference request.
+
 ### My portal is secured by 2FA. Can I use Optexity to login?
+
+Yes we provide inegration to authenticator apps like Google Authenticator, Microsoft Authenticator, Authy, etc. You can learn more about how to use authenticator apps in the [TOTP Integration](/docs/advanced/totp-integration) documentation.
 
 ### Do you handle TOTP codes?
 
+Yes we provide inegration to authenticator apps like Google Authenticator, Microsoft Authenticator, Authy, etc. You can learn more about how to use authenticator apps in the [TOTP Integration](/docs/advanced/totp-integration) documentation.
+
 ### Do you handle OTP over gmail?
 
+Yes this is a work in progress and we will provide you with details shortly,
+
 ### How do I access downloaded files?
+
+You
 
 ### Where is my extracted data stored?
 

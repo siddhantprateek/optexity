@@ -81,10 +81,19 @@
                     },
                     {
                         "group": "HTTP API",
+                        "openapi": "https://api.optexity.com/openapi.json",
                         "pages": [
-                            "/api-reference/introduction",
                             "/api-reference/cloud/inference-endpoint",
-                            "/api-reference/health-endpoints"
+                            "POST /api/v1/inference",
+                            "GET /api/v1/task_status",
+                            "GET /api/v1/final_screenshot",
+                            "GET /api/v1/get_output_data",
+                            "GET /api/v1/get_downloads",
+                            "POST /api/v1/initiate_callback",
+                            "POST /api/v1/get_callback_data",
+                            "POST /api/v1/add_example",
+                            "POST /api/v1/update_example",
+                            "POST /api/v1/validate_api_key"
                         ]
                     }
                 ]
