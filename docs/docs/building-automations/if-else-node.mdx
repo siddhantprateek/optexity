@@ -1,94 +1,149 @@
 ---
 title: If Else Node
-description: Understanding the If Else Node of Optexity automations
+description: Conditional execution in automations
 ---
 
-## If Else Node
+Use `if_else_node` for conditional execution based on runtime conditions—handling different page states, optional elements, or branching logic.
 
-Use `If Else Node` for conditional execution based on a condition string.
-
-| Parameter    | Description                                    |
-| ------------ | ---------------------------------------------- |
-| `condition`  | Condition string to evaluate.                  |
-| `if_nodes`   | List of `action_node` or `if_else_node` nodes. |
-| `else_nodes` | List of `action_node` or `if_else_node` nodes. |
+## Structure
 
 ```json
 {
-    "condition": "has_captcha",
-    "if_nodes": [
-        // Actions to execute if condition is true
-        {
-            "interaction_action": {
-                // ... action definition
-            }
+  "type": "if_else_node",
+  "condition": "has_captcha",
+  "if_nodes": [
+    {
+      "type": "action_node",
+      "interaction_action": {
+        "agentic_task": {
+          "task": "Solve the captcha",
+          "max_steps": 10,
+          "backend": "browser_use"
         }
-    ],
-    "else_nodes": [
-        // Actions to execute if condition is false
-        {
-            "interaction_action": {
-                // ... action definition
-            }
+      }
+    }
+  ],
+  "else_nodes": [
+    {
+      "type": "action_node",
+      "interaction_action": {
+        "click_element": {
+          "command": "get_by_role(\"button\", name=\"Continue\")"
         }
-    ]
+      }
+    }
+  ]
 }
 ```
 
-Condiiton is a python like expresstion that is evaluated to a boolean value. It can use variables from `input_parameters`, `generated_parameters` and `secure_parameters`.
+## Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `condition` | `str` | Python-like expression to evaluate |
+| `if_nodes` | `list[action_node \| if_else_node \| for_loop_node]` | Actions when condition is true |
+| `else_nodes` | `list[...]` | Actions when condition is false (optional) |
+
+## Condition Syntax
+
+Conditions are Python-like expressions that can reference parameters:
 
 ```json
 {
-    "condition": "{variable_name[0]} is not None and {variable_name[0]} != 'random_value'"
+  "condition": "{has_2fa[0]} == 'true'"
 }
 ```
 
-### Example
-
 ```json
 {
-    "type": "if_else",
-    "condition": "has_captcha",
-    "if_nodes": [
-        {
-            "type": "action",
-            "interaction_action": {
-                "agentic_task": {
-                    "task": "Solve the captcha",
-                    "max_steps": 10,
-                    "backend": "browser_use"
-                }
-            }
-        }
-    ],
-    "else_nodes": [
-        {
-            "type": "action",
-            "interaction_action": {
-                "click_element": {
-                    "command": "get_by_role(\"button\", name=\"Continue\")",
-                    "prompt_instructions": "Click continue"
-                }
-            }
-        }
-    ]
+  "condition": "{verification_needed[0]} is not None and {verification_needed[0]} != 'skip'"
 }
 ```
 
-### Else Nodes Are Optional
+### Operators
 
-If you only need to act when a condition is true:
+| Operator | Example |
+|----------|---------|
+| Equality | `{var[0]} == 'value'` |
+| Inequality | `{var[0]} != 'value'` |
+| None check | `{var[0]} is not None` |
+| Boolean | `{var[0]} == 'true'` |
+| Logical AND | `{a[0]} == 'x' and {b[0]} == 'y'` |
+| Logical OR | `{a[0]} == 'x' or {b[0]} == 'y'` |
+
+## Examples
+
+### Handle Optional 2FA
 
 ```json
 {
-    "type": "if_else",
-    "condition": "needs_verification",
-    "if_nodes": [
-        {
-            "type": "action",
-            "action": {}
+  "type": "if_else_node",
+  "condition": "{requires_2fa[0]} == 'true'",
+  "if_nodes": [
+    {
+      "type": "action_node",
+      "interaction_action": {
+        "input_text": {
+          "command": "get_by_label(\"Verification Code\")",
+          "input_text": "{auth_code[0]}"
         }
+      }
+    }
+  ],
+  "else_nodes": []
+}
+```
+
+### Branch Based on Extracted Value
+
+```json
+[
+  {
+    "type": "action_node",
+    "extraction_action": {
+      "llm": {
+        "extraction_format": { "status": "str" },
+        "extraction_instructions": "Extract the order status",
+        "output_variable_names": ["status"]
+      }
+    }
+  },
+  {
+    "type": "if_else_node",
+    "condition": "{status[0]} == 'pending'",
+    "if_nodes": [
+      {
+        "type": "action_node",
+        "interaction_action": {
+          "click_element": {
+            "command": "get_by_role(\"button\", name=\"Approve\")"
+          }
+        }
+      }
     ],
     "else_nodes": []
+  }
+]
+```
+
+### Nested Conditions
+
+```json
+{
+  "type": "if_else_node",
+  "condition": "{user_type[0]} == 'admin'",
+  "if_nodes": [
+    {
+      "type": "if_else_node",
+      "condition": "{access_level[0]} == 'full'",
+      "if_nodes": [ ... ],
+      "else_nodes": [ ... ]
+    }
+  ],
+  "else_nodes": []
 }
 ```
+
+<Info>
+`else_nodes` is optional. If omitted or empty, nothing happens when condition is false.
+</Info>

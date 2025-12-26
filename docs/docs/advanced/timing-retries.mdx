@@ -3,318 +3,181 @@ title: Timing & Retries
 description: Controlling execution timing and handling failures
 ---
 
-Web automation requires careful timing. Pages load at different speeds, elements appear dynamically, and networks can be slow. Optexity provides several mechanisms to handle these challenges.
+Web automation requires careful timing. Pages load at different speeds, elements appear dynamically, and networks can be slow.
 
-## Overview
+## Timing Controls
 
-Timing and retries are controlled at two levels:
-
-| Level                  | Properties                                                                       |
-| ---------------------- | -------------------------------------------------------------------------------- |
-| **action_node**        | `before_sleep_time`, `end_sleep_time`, `expect_new_tab`, `max_new_tab_wait_time` |
-| **interaction_action** | `max_tries`, `max_timeout_seconds_per_try`                                       |
+| Level | Properties |
+|-------|------------|
+| **Action Node** | `before_sleep_time`, `end_sleep_time`, `expect_new_tab`, `max_new_tab_wait_time` |
+| **Interaction Action** | `max_tries`, `max_timeout_seconds_per_try` |
 
 ## Sleep Times
 
 ### before_sleep_time
 
-Time to wait **before** executing the action. Use this when you need the page to load or settle.
+Wait **before** executing the action. Use when page needs to load or settle.
 
 ```json
 {
-    "interaction_action": {
-        "click_element": {
-            "command": "get_by_role(\"button\", name=\"Submit\")",
-            "prompt_instructions": "Click submit"
-        }
-    },
-    "before_sleep_time": 3.0
+  "type": "action_node",
+  "interaction_action": { ... },
+  "before_sleep_time": 3.0
 }
 ```
 
 ### end_sleep_time
 
-Time to wait **after** the action completes. Use this when subsequent actions depend on the current action's effects.
+Wait **after** action completes. Use when subsequent actions depend on this action's effects.
 
 ```json
 {
-    "interaction_action": {
-        "click_element": {
-            "command": "get_by_role(\"button\", name=\"Load More\")",
-            "prompt_instructions": "Click to load more results"
-        }
-    },
-    "end_sleep_time": 2.0
+  "type": "action_node",
+  "interaction_action": { ... },
+  "end_sleep_time": 2.0
 }
 ```
 
 ### Default Values
 
-Different action types have different defaults:
+| Action Type | `before_sleep_time` | `end_sleep_time` |
+|-------------|---------------------|------------------|
+| Interaction | `0.0` | `1.0` |
+| Extraction | `3.0` | `0.0` |
+| Assertion | `0.0` | `0.0` |
+| 2FA | `0.0` | `0.0` |
 
-| Action Type         | `before_sleep_time` | `end_sleep_time` |
-| ------------------- | ------------------- | ---------------- |
-| Interaction actions | `0.0`               | `1.0`            |
-| Extraction actions  | `3.0`               | `0.0`            |
-| Assertion actions   | `0.0`               | `0.0`            |
-| 2FA actions         | `0.0`               | `0.0`            |
+<Info>
+Sleep times must be between 0 and 10 seconds.
+</Info>
 
-These defaults are designed for typical use cases:
-
-- **Interactions** wait after acting (for the action's effect to take place)
-- **Extractions** wait before reading (for the page to fully load)
-- **Assertions** don't wait (they're checking the current state)
-
-### Constraints
-
-Sleep times must be between 0 and 10 seconds:
-
-```json
-{
-  "before_sleep_time": 0.0
-}
-
-{
-  "before_sleep_time": 10.0
-}
-```
+---
 
 ## Retry Configuration
 
-When element location fails, Optexity can retry. This is configured on `interaction_action`.
+Control how Optexity retries finding elements.
 
-### max_tries
-
-Maximum number of attempts to find and interact with the element.
-
-```json
-{
-    "interaction_action": {
-        "max_tries": 10,
-        "click_element": {
-            "command": "get_by_role(\"button\", name=\"Submit\")",
-            "prompt_instructions": "Click submit"
-        }
-    }
-}
-```
-
-Default: `10`
-
-### max_timeout_seconds_per_try
-
-How long to wait for the element on each attempt.
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `max_tries` | `int` | `10` | Maximum retry attempts |
+| `max_timeout_seconds_per_try` | `float` | `1.0` | Timeout per attempt |
 
 ```json
 {
-    "interaction_action": {
-        "max_tries": 5,
-        "max_timeout_seconds_per_try": 2.0,
-        "click_element": {
-            "command": "get_by_role(\"button\", name=\"Submit\")",
-            "prompt_instructions": "Click submit"
-        }
-    }
+  "interaction_action": {
+    "max_tries": 15,
+    "max_timeout_seconds_per_try": 2.0,
+    "click_element": { ... }
+  }
 }
 ```
-
-Default: `1.0` seconds
 
 ### How Retries Work
 
-1. Optexity attempts to find the element using `command` or `xpath`
-2. If not found within `max_timeout_seconds_per_try`, it retries
-3. After all `max_tries` are exhausted, the AI uses `prompt_instructions` as a fallback
-4. If the AI can't find it either, the action fails
+1. Attempt to find element using `command` or `xpath`
+2. If not found within timeout, retry
+3. After all tries exhausted, use AI with `prompt_instructions`
+4. If AI can't find it, action fails
 
-### skip_prompt Behavior
+<Tip>
+Increase `max_tries` rather than timeout per try. This finds elements faster when they appear while still handling slow pages.
+</Tip>
 
-When `skip_prompt=True` on an action, retries are reduced:
-
-```json
-{
-    "command": "get_by_role(\"button\", name=\"Dismiss\")",
-    "prompt_instructions": "Click dismiss if visible",
-    "skip_prompt": true
-}
-```
-
-This is useful for optional elements that might not always be present.
+---
 
 ## Handling New Tabs
 
 ### expect_new_tab
 
-When an action opens a new browser tab, set `expect_new_tab=True`:
+Set when action opens a new browser tab:
 
 ```json
 {
-    "interaction_action": {
-        "click_element": {
-            "command": "get_by_role(\"link\", name=\"Open Report\")",
-            "prompt_instructions": "Click to open report in new tab"
-        }
-    },
-    "expect_new_tab": true
+  "type": "action_node",
+  "interaction_action": {
+    "click_element": {
+      "command": "get_by_role(\"link\", name=\"Open Report\")"
+    }
+  },
+  "expect_new_tab": true
 }
 ```
 
 When `expect_new_tab=True`:
+- `max_new_tab_wait_time` automatically set to `10.0`
+- Automation waits for new tab
+- Focus switches to new tab
 
-- `max_new_tab_wait_time` is automatically set to `10.0` seconds
-- The automation waits for the new tab to open
-- Focus switches to the new tab
-
-### max_new_tab_wait_time
-
-Maximum time to wait for a new tab to appear.
-
-```json
-{
-    "interaction_action": {
-        "click_element": {
-            "command": "get_by_role(\"button\", name=\"Generate PDF\")",
-            "prompt_instructions": "Click to generate PDF in new tab"
-        }
-    },
-    "expect_new_tab": true,
-    "max_new_tab_wait_time": 15.0
-}
-```
-
-Default when `expect_new_tab=True`: `10.0` seconds
-Default when `expect_new_tab=False`: `0.0` seconds
+---
 
 ## Common Patterns
 
 ### Slow-Loading Pages
 
-For pages that take time to load:
-
 ```json
-[
-    {
-        "interaction_action": {
-            "click_element": {
-                "command": "get_by_role(\"button\", name=\"Search\")",
-                "prompt_instructions": "Click search"
-            }
-        },
-        "end_sleep_time": 5.0
-    },
-    {
-        "extraction_action": {
-            "llm": {}
-        },
-        "before_sleep_time": 3.0
+{
+  "type": "action_node",
+  "interaction_action": {
+    "click_element": {
+      "command": "get_by_role(\"button\", name=\"Search\")"
     }
-]
+  },
+  "end_sleep_time": 5.0
+}
 ```
 
-### AJAX/Dynamic Content
-
-For content that loads dynamically:
+### Dynamic AJAX Content
 
 ```json
 {
-    "interaction_action": {
-        "max_tries": 15,
-        "max_timeout_seconds_per_try": 1.0,
-        "click_element": {
-            "command": "get_by_role(\"button\", name=\"Load More\")",
-            "prompt_instructions": "Click load more when it appears"
-        }
-    },
-    "before_sleep_time": 2.0
+  "type": "action_node",
+  "interaction_action": {
+    "max_tries": 15,
+    "max_timeout_seconds_per_try": 1.0,
+    "click_element": {
+      "command": "get_by_text(\"Results loaded\")"
+    }
+  },
+  "before_sleep_time": 2.0
 }
 ```
 
 ### Optional Elements
 
-For elements that may or may not be present:
-
 ```json
 {
-    "interaction_action": {
-        "max_tries": 3,
-        "click_element": {
-            "command": "get_by_role(\"button\", name=\"Dismiss\")",
-            "prompt_instructions": "Dismiss popup if present",
-            "skip_prompt": true,
-            "assert_locator_presence": true
-        }
+  "type": "action_node",
+  "interaction_action": {
+    "max_tries": 3,
+    "click_element": {
+      "command": "get_by_role(\"button\", name=\"Dismiss\")",
+      "skip_prompt": true,
+      "assert_locator_presence": true
     }
+  }
 }
 ```
 
-### After Form Submission
+---
 
-After submitting forms that trigger server processing:
+## Troubleshooting
 
-```json
-[
-    {
-        "interaction_action": {
-            "click_element": {
-                "command": "get_by_role(\"button\", name=\"Submit\")",
-                "prompt_instructions": "Submit the form"
-            }
-        },
-        "end_sleep_time": 3.0
-    },
-    {
-        "interaction_action": {
-            "max_tries": 20,
-            "max_timeout_seconds_per_try": 1.0,
-            "click_element": {
-                "command": "get_by_text(\"Confirmation\")",
-                "prompt_instructions": "Wait for confirmation message"
-            }
-        }
-    }
-]
-```
+| Symptom | Likely Cause | Solution |
+|---------|--------------|----------|
+| "Element not found" | Page not loaded | Increase `before_sleep_time` |
+| Clicking wrong element | Page still loading | Increase `before_sleep_time` |
+| Missing extracted data | Content not rendered | Increase wait before extraction |
+| Next action fails | Previous effect not ready | Increase `end_sleep_time` |
+| Random failures | Race conditions | Increase retries and timeouts |
 
-## Timing Best Practices
+---
 
-<CardGroup cols={2}>
-    <Card title="Start Conservative" icon="clock">
-        Use longer waits initially, then optimize once it works
-    </Card>
-    <Card title="Use Action Defaults" icon="wand-magic-sparkles">
-        Let the defaults handle most cases
-    </Card>
-    <Card title="Wait Before Extraction" icon="magnifying-glass">
-        Ensure page is stable before extracting data
-    </Card>
-    <Card title="Wait After Navigation" icon="route">
-        Give pages time to load after clicks
-    </Card>
-</CardGroup>
+## Best Practices
 
-### When to Increase Timing
-
-- Slow network connections
-- Heavy JavaScript applications
-- Server-side rendering delays
-- Form submissions that trigger processing
-- Pages with multiple AJAX calls
-
-### When to Decrease Timing
-
-- Fast, static pages
-- Well-optimized applications
-- Local development/testing
-- Time-sensitive operations
-
-## Debugging Timing Issues
-
-Signs of timing problems:
-
-| Symptom                | Likely Cause                     | Solution                                   |
-| ---------------------- | -------------------------------- | ------------------------------------------ |
-| "Element not found"    | Page not loaded                  | Increase `before_sleep_time`               |
-| Clicking wrong element | Page still loading               | Increase `before_sleep_time`               |
-| Missing extracted data | Content not rendered             | Increase `before_sleep_time` on extraction |
-| Next action fails      | Previous action effect not ready | Increase `end_sleep_time`                  |
-| Random failures        | Race conditions                  | Increase retries and timeouts              |
+| Practice | Recommendation |
+|----------|----------------|
+| Start conservative | Use longer waits initially, optimize later |
+| Use defaults | Let action-type defaults handle most cases |
+| Wait before extraction | Ensure page stability |
+| Wait after navigation | Give pages time to load |
+| Increase retries | Prefer more tries over longer timeouts |

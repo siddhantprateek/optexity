@@ -1,42 +1,54 @@
 ---
 title: Proxy Setup
-description: Setting up proxies for your automations
+description: Configure proxies for automations
 ---
 
-Optexity supports using proxies for your automations. You can use proxies from any provider.
+Use proxies to run automations through different IP addresses.
 
-## Proxy setup in local development
+## Local Development
 
-You can use proxies in local development by setting the `PROXY_URL`, `PROXY_USERNAME`, `PROXY_PASSWORD` environment variables.
+Set environment variables:
 
 ```bash
 PROXY_URL=http://proxy-server:8080
-PROXY_USERNAME=proxy-user # optional
-PROXY_PASSWORD=proxy-pass # optional
-PROXY_PROVIDER=other # optional, default is oxylabs
+PROXY_USERNAME=proxy-user      # optional
+PROXY_PASSWORD=proxy-pass      # optional
+PROXY_PROVIDER=other           # optional, default: oxylabs
 ```
 
-## Proxy setup in production
+---
 
-There is no requirement from the user to set up proxies in production. Optexity will automatically use the proxy.
+## Production
 
-## Inference with proxies
+No configuration needed. Optexity automatically uses proxies in production.
 
-If you want to use proxies in your inference, you can set the `use_proxy` flag to `true` in the inference request. In the inference optexity will take care of the proxy setup and use the proxy for the inference. In local development, you can set the `PROXY_URL`, `PROXY_USERNAME`, `PROXY_PASSWORD` environment variables to use the proxy.
+---
+
+## Enabling Proxy in Inference
+
+Set `use_proxy: true` in the inference request:
 
 ```json
 {
-    "endpoint_name": "extract_stock_price",
-    "input_parameters": {
-        "search_term": ["NVDA"]
-    },
-    "unique_parameter_names": [],
-    "use_proxy": true
+  "endpoint_name": "extract_stock_price",
+  "input_parameters": {
+    "search_term": ["NVDA"]
+  },
+  "unique_parameter_names": [],
+  "use_proxy": true
 }
 ```
 
-## Proxy providers
+---
+
+## Proxy Providers
 
 ### Webshare
 
-[Webshare](https://webshare.io/) provides 10 free proxies for testing. You can use the webshare proxy by setting the `PROXY_URL`, `PROXY_USERNAME`, `PROXY_PASSWORD` environment variables.
+[Webshare](https://webshare.io/) provides 10 free proxies for testing.
+
+```bash
+PROXY_URL=http://your-webshare-proxy:port
+PROXY_USERNAME=your-username
+PROXY_PASSWORD=your-password
+```

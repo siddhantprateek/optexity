@@ -1,47 +1,79 @@
 ---
 title: TOTP Integration
-description: Using TOTP to store and retrieve secrets in your automations
+description: Handle two-factor authentication codes in automations
 ---
 
-Optexity support TOTP integration for two-factor authentication. You can use TOTP from any authenticator app like Google Authenticator, Microsoft Authenticator, Authy, etc.
+Generate TOTP codes from authenticator apps (Google Authenticator, Microsoft Authenticator, Authy) for 2FA.
 
-## How to extract TOTP code from your authenticator app
+## Get Your TOTP Secret
 
-Please follow this awesome guide to extract TOTP code from your authenticator app: https://cavalloj.medium.com/totp-secret-extraction-from-qr-codes-ee097b4c687f
+Follow this guide to extract your TOTP secret: [TOTP Secret Extraction Guide](https://cavalloj.medium.com/totp-secret-extraction-from-qr-codes-ee097b4c687f)
 
-After following the guide, you will get a TOTP secret. You can use this secret in your automations.
+---
 
-## Simple way to use TOTP in your automations
+## Direct TOTP Secret
 
-You can hardcode the TOTP secret in your automation. It should be provided in the `secure_parameters` dictionary.
+Provide the TOTP secret directly in `secure_parameters`:
 
 ```json
-"secure_parameters": {
-  "authenticator_code": [
-    {
+{
+  "secure_parameters": {
+    "auth_code": [{
       "totp": {
-        "totp_secret": "TOTP_SECRET"
+        "totp_secret": "YOUR_BASE32_SECRET",
+        "digits": 6
       }
-    }
-  ]
+    }]
+  }
 }
 ```
 
-## Secure way to use TOTP in your automations
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `totp_secret` | `str` | Required | Base32-encoded TOTP secret |
+| `digits` | `int` | `6` | Number of digits in code |
 
-More secure way to use TOTP in your automations is to store the TOTP secret in One Password. You can learn more about how to do this in the [One Password Integration](/docs/advanced/onepassword) documentation.
+---
+
+## TOTP via 1Password (Recommended)
+
+Store the TOTP secret in 1Password for better security:
 
 ```json
-"secure_parameters": {
-  "authenticator_code": [
-    {
+{
+  "secure_parameters": {
+    "auth_code": [{
       "onepassword": {
         "type": "totp_secret",
-        "item_name": "item_name_in_one_password",
-        "field_name": "authenticator_code_field_name",
-        "vault_name": "vault_name_in_one_password"
-      },
+        "vault_name": "my_vault",
+        "item_name": "my_login",
+        "field_name": "totp_secret",
+        "digits": 6
+      }
+    }]
+  }
+}
+```
+
+<Tip>
+See [1Password Integration](/docs/advanced/onepassword) for setup instructions.
+</Tip>
+
+---
+
+## Using in Automations
+
+Reference the TOTP code like any parameter:
+
+```json
+{
+  "type": "action_node",
+  "interaction_action": {
+    "input_text": {
+      "command": "get_by_label(\"Verification Code\")",
+      "input_text": "{auth_code[0]}",
+      "prompt_instructions": "Enter the 2FA code"
     }
-  ]
+  }
 }
 ```

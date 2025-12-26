@@ -3,421 +3,199 @@ title: Agentic Tasks
 description: Using AI agents for complex browser interactions
 ---
 
-Sometimes web interactions are too complex or unpredictable for static automations. Optexity integrates with AI agents that can autonomously navigate and interact with web pages to accomplish goals.
+For interactions too complex or unpredictable for static automations, use AI agents that autonomously navigate and interact based on goals.
 
-## Overview
+## When to Use
 
-Agentic tasks use a language model to control the browser, making decisions about what to click, type, and navigate based on the current page state and a goal description.
-
-Two agentic action types are available:
-
-| Action                | Purpose                                      |
-| --------------------- | -------------------------------------------- |
-| `agentic_task`        | General-purpose autonomous task execution    |
-| `close_overlay_popup` | Specialized for dismissing popups and modals |
+| Use Agentic For | Use Static Actions For |
+|-----------------|------------------------|
+| Unpredictable UI layouts | Known, stable elements |
+| Complex navigation paths | Simple click/type actions |
+| Handling popups/modals | Performance-critical paths |
+| Sites with frequent changes | Cost-sensitive automations |
+| CAPTCHAs and verification | Deterministic workflows |
 
 ## AgenticTask
 
-Use `agentic_task` when you need the AI to autonomously accomplish a goal.
+Use `agentic_task` when AI should autonomously accomplish a goal:
 
 ```json
 {
-    "interaction_action": {
-        "agentic_task": {
-            "task": "Navigate to the settings page and enable two-factor authentication",
-            "max_steps": 15,
-            "backend": "browser_use",
-            "use_vision": false,
-            "keep_alive": true
-        }
+  "interaction_action": {
+    "agentic_task": {
+      "task": "Navigate to settings and enable two-factor authentication",
+      "max_steps": 15,
+      "backend": "browser_use",
+      "use_vision": false,
+      "keep_alive": true
     }
+  }
 }
 ```
 
 ### Properties
 
-| Property     | Type                             | Default  | Description                                  |
-| ------------ | -------------------------------- | -------- | -------------------------------------------- |
-| `task`       | `str`                            | Required | Natural language description of the goal     |
-| `max_steps`  | `int`                            | Required | Maximum number of actions the agent can take |
-| `backend`    | `"browser_use" \| "browserbase"` | Required | Agent backend to use                         |
-| `use_vision` | `bool`                           | `False`  | Whether the agent should use screenshots     |
-| `keep_alive` | `bool`                           | `True`   | Keep browser session alive after task        |
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `task` | `str` | Required | Natural language goal description |
+| `max_steps` | `int` | Required | Maximum actions the agent can take |
+| `backend` | `"browser_use" \| "browserbase"` | Required | Agent backend |
+| `use_vision` | `bool` | `False` | Include screenshots for agent |
+| `keep_alive` | `bool` | `True` | Keep browser session after task |
+
+### max_steps Guidelines
+
+| Task Complexity | Suggested max_steps |
+|-----------------|---------------------|
+| Simple (1-2 clicks) | 3-5 |
+| Medium (navigate + fill form) | 10-15 |
+| Complex (multi-page workflow) | 20-30 |
+
+<Warning>
+Higher `max_steps` means longer execution time and higher LLM costs.
+</Warning>
 
 ### Writing Good Task Descriptions
 
-The `task` field should clearly describe the goal:
+**Good:**
+```json
+{"task": "Click 'Account Settings' in the sidebar, scroll down, click 'Security'"}
+```
+```json
+{"task": "1. Close any popups 2. Click search 3. Search 'laptop' 4. Click first result"}
+```
 
-**Good examples:**
+**Poor:**
+```json
+{"task": "Do the thing"}
+```
+```json
+{"task": "Complete the form"}
+```
+
+### Vision Mode
+
+Enable `use_vision` for visual elements without good text labels:
 
 ```json
 {
-    "agentic_task": {
-        "task": "Click the 'Account Settings' link in the sidebar, then scroll down and click 'Security'"
-    }
+  "agentic_task": {
+    "task": "Click on the red 'Sale' banner",
+    "max_steps": 5,
+    "use_vision": true
+  }
 }
 ```
 
-```json
-{
-    "agentic_task": {
-        "task": "Fill out the contact form with name 'John Doe', email 'john@example.com', and message 'Hello', then submit"
-    }
-}
-```
+| Use Vision For | Avoid Vision For |
+|----------------|------------------|
+| Image-based navigation | Text-based navigation |
+| Visual verification | Speed-critical tasks |
+| Elements without ARIA labels | Cost minimization |
+
+---
+
+## CloseOverlayPopup
+
+Specialized action for dismissing popups, modals, and overlays:
 
 ```json
 {
-    "agentic_task": {
-        "task": "1. Close any popup dialogs 2. Click the search icon 3. Search for 'laptop' 4. Click the first result"
+  "interaction_action": {
+    "close_overlay_popup": {
+      "max_steps": 5
     }
-}
-```
-
-**Poor examples:**
-
-```json
-{
-    "agentic_task": {
-        "task": "Do the thing"
-    }
-}
-```
-
-```json
-{
-    "agentic_task": {
-        "task": "Complete the form"
-    }
-}
-```
-
-```json
-{
-    "agentic_task": {
-        "task": "Browse the website"
-    }
-}
-```
-
-### max_steps Configuration
-
-Set `max_steps` based on task complexity:
-
-| Task Complexity               | Suggested max_steps |
-| ----------------------------- | ------------------- |
-| Simple (1-2 clicks)           | 3-5                 |
-| Medium (navigate, fill form)  | 10-15               |
-| Complex (multi-page workflow) | 20-30               |
-
-<Warning>
-    Higher `max_steps` means longer execution time and higher LLM costs. Start low and increase if
-    needed.
-</Warning>
-
-### Backend Options
-
-| Backend       | Description                       |
-| ------------- | --------------------------------- |
-| `browser_use` | Local browser-use agent (default) |
-| `browserbase` | Cloud-based browser automation    |
-
-### use_vision
-
-When `use_vision=true`, the agent receives screenshots:
-
-```json
-{
-    "agentic_task": {
-        "task": "Click on the red 'Sale' banner",
-        "max_steps": 5,
-        "backend": "browser_use",
-        "use_vision": true
-    }
-}
-```
-
-Use vision for:
-
-- Visual elements without good text/ARIA labels
-- Image-based navigation
-- Verifying visual state
-
-Avoid vision when:
-
-- Text-based navigation is sufficient
-- Speed is critical
-- Minimizing LLM costs
-
-## CloseOverlayPopupAction
-
-A specialized agentic task for dismissing popups, modals, and overlays.
-
-```json
-{
-    "interaction_action": {
-        "close_overlay_popup": {
-            "max_steps": 5
-        }
-    }
+  }
 }
 ```
 
 ### Default Behavior
 
-`close_overlay_popup` comes with pre-configured defaults:
-
-| Property     | Default Value                        |
-| ------------ | ------------------------------------ |
-| `task`       | Comprehensive popup dismissal prompt |
-| `max_steps`  | `5`                                  |
-| `backend`    | `"browser_use"`                      |
-| `use_vision` | `True`                               |
-| `keep_alive` | `True`                               |
+| Property | Default |
+|----------|---------|
+| `task` | Comprehensive popup dismissal prompt |
+| `max_steps` | `5` |
+| `use_vision` | `True` |
+| `keep_alive` | `True` |
 
 ### What It Handles
 
-The built-in prompt instructs the agent to dismiss:
-
 - Cookie consent banners
 - Privacy policy notices
-- Email/newsletter signup prompts
+- Newsletter signup prompts
 - Age verification gates
-- Promotional offer popups
-- Any blocking overlay
+- Promotional popups
+- Blocking overlays
 
-### Priority Rules
+---
 
-The agent follows these rules:
+## Variables in Agentic Tasks
 
-1. **Cookie consent**: Always accept/agree
-2. **Other popups**: Click dismissive buttons (Close, X, No Thanks, Skip)
-3. **Avoidance**: Never input text or click signup/learn more links
-
-### When to Use
+Use parameter substitution in task descriptions:
 
 ```json
 {
+  "agentic_task": {
+    "task": "Search for '{search_query[0]}' and filter to items under ${price_max[0]}",
+    "max_steps": 10
+  }
+}
+```
+
+---
+
+## Combining with Static Actions
+
+Best pattern: use static actions for predictable steps, agentic for uncertainty:
+
+```json
+[
+  {
+    "type": "action_node",
     "interaction_action": {
-        "close_overlay_popup": {
-            "max_steps": 5
-        }
-    },
-    "before_sleep_time": 3.0
-}
-```
-
-```json
-{
-    "extraction_action": {
-        // ... extraction configuration
+      "input_text": {
+        "command": "get_by_label(\"Email\")",
+        "input_text": "{email[0]}"
+      }
     }
-}
-```
-
-## Using Variables in Agentic Tasks
-
-Variables can be substituted in the `task` field:
-
-```json
-{
-    "parameters": {
-        "input_parameters": {
-            "search_query": ["laptop"],
-            "price_max": ["1000"]
-        }
-    },
-    "action_nodes": [
-        {
-            "interaction_action": {
-                "agentic_task": {
-                    "task": "Search for '{search_query[0]}' and filter results to show items under ${price_max[0]}",
-                    "max_steps": 10,
-                    "backend": "browser_use"
-                }
-            }
-        }
-    ]
-}
-```
-
-## Combining Agentic with Static Actions
-
-Agentic tasks work best as part of a larger automation:
-
-```json
-[
-    {
-        "interaction_action": {
-            "input_text": {
-                "command": "get_by_label(\"Email\")",
-                "input_text": "{email[0]}",
-                "prompt_instructions": "Enter email"
-            }
-        }
-    },
-    {
-        "interaction_action": {
-            "input_text": {
-                "command": "get_by_label(\"Password\")",
-                "input_text": "{password[0]}",
-                "prompt_instructions": "Enter password"
-            }
-        }
-    },
-    {
-        "interaction_action": {
-            "click_element": {
-                "command": "get_by_role(\"button\", name=\"Sign In\")",
-                "prompt_instructions": "Click sign in"
-            }
-        }
-    },
-    {
-        "interaction_action": {
-            "agentic_task": {
-                "task": "Navigate to the Reports section and find the Monthly Summary report",
-                "max_steps": 10,
-                "backend": "browser_use"
-            }
-        }
-    },
-    {
-        "interaction_action": {
-            "click_element": {
-                "command": "get_by_role(\"button\", name=\"Download\")",
-                "prompt_instructions": "Download the report",
-                "expect_download": true
-            }
-        }
+  },
+  {
+    "type": "action_node",
+    "interaction_action": {
+      "click_element": {
+        "command": "get_by_role(\"button\", name=\"Sign In\")"
+      }
     }
+  },
+  {
+    "type": "action_node",
+    "interaction_action": {
+      "agentic_task": {
+        "task": "Navigate to Reports and find the Monthly Summary",
+        "max_steps": 10
+      }
+    }
+  },
+  {
+    "type": "action_node",
+    "interaction_action": {
+      "click_element": {
+        "command": "get_by_role(\"button\", name=\"Download\")",
+        "expect_download": true
+      }
+    }
+  }
 ]
 ```
 
-## When to Use Agentic Tasks
-
-<CardGroup cols={2}>
-    <Card title="Use Agentic For" icon="check">
-        - Unpredictable UI layouts - Complex navigation paths - Handling popups/modals - Sites with
-        frequent changes - Multi-step form wizards
-    </Card>
-    <Card title="Prefer Static For" icon="x">
-        - Known, stable elements - Simple click/type actions - Performance-critical paths -
-        Cost-sensitive automations - Deterministic workflows
-    </Card>
-</CardGroup>
-
-## Error Handling
-
-Agentic tasks can fail if:
-
-- The goal can't be achieved within `max_steps`
-- The page state prevents the action
-- The LLM makes incorrect decisions
-
-Consider adding fallback static actions:
-
-```json
-[
-    {
-        "interaction_action": {
-            "agentic_task": {
-                "task": "Find and click the logout button",
-                "max_steps": 5,
-                "backend": "browser_use"
-            }
-        }
-    },
-    {
-        "interaction_action": {
-            "click_element": {
-                "command": "get_by_role(\"button\", name=\"Logout\")",
-                "prompt_instructions": "Click logout",
-                "skip_prompt": true,
-                "assert_locator_presence": true
-            }
-        }
-    }
-]
-```
+---
 
 ## Best Practices
 
-### Start with Static Actions
-
-Use static actions for predictable interactions:
-
-```json
-{
-    "interaction_action": {
-        "click_element": {
-            "command": "get_by_role(\"button\", name=\"Submit\")"
-        }
-    }
-}
-```
-
-```json
-{
-    "interaction_action": {
-        "agentic_task": {
-            "task": "Handle any CAPTCHA that appears"
-        }
-    }
-}
-```
-
-### Keep Tasks Focused
-
-Break complex goals into smaller agentic tasks:
-
-```json
-{
-    "interaction_action": {
-        "agentic_task": {
-            "task": "Sign up for an account, verify email, and complete profile"
-        }
-    }
-}
-```
-
-```json
-[
-    {
-        "interaction_action": {
-            "agentic_task": {
-                "task": "Fill out the signup form with the provided information"
-            }
-        }
-    },
-    {
-        "interaction_action": {
-            "agentic_task": {
-                "task": "Click the verification link in the confirmation page"
-            }
-        }
-    },
-    {
-        "interaction_action": {
-            "agentic_task": {
-                "task": "Complete the profile setup wizard"
-            }
-        }
-    }
-]
-```
-
-### Monitor and Iterate
-
-Agentic tasks may need tuning:
-
-- Review execution logs
-- Adjust `max_steps` based on actual usage
-- Refine `task` descriptions for clarity
-- Consider `use_vision` for visual-heavy pages
-
-## Next Steps
-
-- See [Interaction Actions](/docs/interaction-actions) for static alternatives
-- Check [Timing & Retries](/docs/timing-retries) for agentic task timing
-- Learn [Best Practices](/docs/best-practices) for reliable automations
+| Practice | Recommendation |
+|----------|----------------|
+| Start with static | Use agentic only where needed |
+| Keep tasks focused | Break complex goals into smaller tasks |
+| Start low on max_steps | Increase if agent can't complete |
+| Review execution logs | Refine task descriptions based on results |
+| Use vision selectively | Only when visual context is necessary |

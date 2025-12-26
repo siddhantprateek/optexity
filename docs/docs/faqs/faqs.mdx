@@ -3,145 +3,161 @@ title: FAQs
 description: Frequently asked questions about Optexity
 ---
 
-### What is Optexity?
+## General
 
-Optexity is a platform for building and running browser automations.
+<AccordionGroup>
+  <Accordion title="What is Optexity?">
+    Optexity is a platform for building and running browser automations using AI-assisted element location and robust execution.
+  </Accordion>
+</AccordionGroup>
 
-### Do I need to build new automation for each user or login credentials for each user?
+## Parameters & Credentials
 
-No, you can use the same automation for multiple users by using parameters.
+<AccordionGroup>
+  <Accordion title="Do I need to build new automation for each user or login credentials?">
+    No. Use [Parameters](/docs/building-automations/parameters) to run the same automation with different values. Pass credentials at runtime via the inference request.
+  </Accordion>
 
-### How do I use parameters?
+  <Accordion title="How do I access parameter values?">
+    Use the `{parameter_name[index]}` syntax. For single values use `{username[0]}`. In loops, use `{variable[index]}` for the current iteration. See [Parameters](/docs/building-automations/parameters) for details.
+  </Accordion>
 
-You can use parameters by using the `{parameter_name[0]}` syntax in your automation. If this is used in for loop, you can use `{parameter_name[index]}` syntax to access the current value of the loop. For more information, see the [Parameters](/docs/building-automations/parameters) documentation.
+  <Accordion title="How do I handle passwords and secrets securely?">
+    Use `secure_parameters` instead of hardcoding credentials. Optexity retrieves values at runtime from secure storage like 1Password or generates TOTP codes. Your secrets are never exposed in the automation definition.
 
-### How do I use secure parameters?
+    | Provider | Use Case | Documentation |
+    |----------|----------|---------------|
+    | 1Password | Passwords, API keys | [1Password Integration](/docs/advanced/onepassword) |
+    | TOTP | 2FA codes | [TOTP Integration](/docs/advanced/totp-integration) |
 
-You can use secure parameters by using the `secure_parameters` field in your automation and inference request. In secure parameters you do not specify the actual value. instead you specify how you want to retrieve the value at runtime. Currently, we support One Password and TOTP. You can learn more about secure parameters in the [Secure Parameters](/docs/building-automations/parameters#secure-parameters) documentation.
-
-### I do not want to hardcode passwords in my automation. What opetions do I have?
-
-You can use secure parameters by using the `secure_parameters` field in your automation and inference request. In secure parameters you do not specify the actual value. instead you specify how you want to retrieve the value at runtime. Currently, we support One Password and TOTP. You can learn more about secure parameters in the [Secure Parameters](/docs/building-automations/parameters#secure-parameters) documentation.
-
-### I do not want to send passwords in the request body. How can I use secure parameters?
-
-You can use secure parameters by using the `secure_parameters` field in your automation and inference request. In secure parameters you do not specify the actual value. instead you specify how you want to retrieve the value at runtime. Currently, we support One Password and TOTP. You can learn more about secure parameters in the [Secure Parameters](/docs/building-automations/parameters#secure-parameters) documentation.
-
-### I want to download multiple files in single run. How can I do that?
-
-You can use `for_loop_node` to iterate over multiple values and download files. For more information, see the [For Loop Node](/docs/building-automations/for-loop-node) documentation.
-
-### I want to do actions on multple things which i see on the page. How can I do that?
-
-You can use `for_loop_node` to iterate over multiple values and perform actions on them. For more information, see the [For Loop Node](/docs/building-automations/for-loop-node) documentation.
-
-### I want to do one action if one condition is met and another action if another condition is met. How can I do that?
-
-You can use `if_else_node` to perform one action if one condition is met and another action if another condition is met. For more information, see the [If Else Node](/docs/building-automations/if-else-node) documentation.
-
-### Do I need to build new automation for each condition?
-
-No. You can use `if_else_node` to perform one action if one condition is met and another action if another condition is met. For more information, see the [If Else Node](/docs/building-automations/if-else-node) documentation.
-
-### Do I need to build new automation for each loging credentials?
-
-No. You can use parameters and secure parameters to run the automation for different login credentials and not have to build the automation again. These can be sent in inference request.
-
-### My portal is secured by 2FA. Can I use Optexity to login?
-
-Yes we provide inegration to authenticator apps like Google Authenticator, Microsoft Authenticator, Authy, etc. You can learn more about how to use authenticator apps in the [TOTP Integration](/docs/advanced/totp-integration) documentation.
-
-### Do you handle TOTP codes?
-
-Yes we provide inegration to authenticator apps like Google Authenticator, Microsoft Authenticator, Authy, etc. You can learn more about how to use authenticator apps in the [TOTP Integration](/docs/advanced/totp-integration) documentation.
-
-### Do you handle OTP over gmail?
-
-Yes this is a work in progress and we will provide you with details shortly,
-
-### How do I access downloaded files?
-
-You can access downloaded files by using the `GET /api/v1/get_downloads` endpoint. You can learn more about how to use this endpoint in the [HTTP API](/api-reference/task_details/get-downloads) documentation.
-
-### Where is my extracted data stored?
-
-It is stored in optexity cloud storage. You can access it by using the `GET /api/v1/get_output_data` endpoint. You can learn more about how to use this endpoint in the [HTTP API](/api-reference/task_details/get-output-data) documentation.
-
-### Do I have to poll to get the data?
-
-No. You can setup a callback URL in the dashboard and we will send the callback data to the URL you specify. You can learn more about how to use callbacks in the [Callbacks](/docs/advanced/callbacks) documentation.
-
-### Can you send a callback when the automation is done?
-
-Yes. You can setup a callback URL in the dashboard and we will send the callback data to the URL you specify. You can learn more about how to use callbacks in the [Callbacks](/docs/advanced/callbacks) documentation.
-
-### Do you have a free tier?
-
-All automations are free to build and run using the opensource version of Optexity. You can checkout the [github repo](https://github.com/Optexity/optexity)
-
-### Do you give browser in cloud?
-
-Yes. Please request cloud access by contacting us at founders@optexity.com
-
-### Do you handle CAPTCHAs?
-
-Yes we provide stealth mode in both opensource and cloud version which prevents most of the CAPTCHAs
-
-### How to skip command when the action is nondeterministic
-
-If you do not provide command, then we directly fallback to ai prompt for action.
-
-### How to fill something in box and then select from the drop-down
-
-you should use two actions one after the another. first input somehting in text box. then wait for few seconds for dropdown to populate. then select the value using the prompt based click as generally you do not know the exact locator. if you know the exact locator, then you can use the command based click.
-
-```json
-[
-    {
-        "type": "action_node",
-        "interaction_action": {
-            "input_text": {
-                "command": "get_by_role(\"textbox\", name=\"Type search term here\")",
-                "prompt_instructions": "Fill the SOC code search field with the text '{soc_code_search_term[0]}'.",
-                "input_text": "{soc_code_search_term[0]}"
-            }
-        },
-        "end_sleep_time": 1
-    },
-    {
-        "type": "action_node",
-        "interaction_action": {
-            "click_element": {
-                "prompt_instructions": "Click on the dropdown option '{soc_code_search_term[0]}'."
-            }
-        },
-        "before_sleep_time": 2,
-        "end_sleep_time": 1
-    }
-]
-```
-
-### How to select elements
-
-you should use the select_option action.
-
-```json
-{
-    "type": "action_node",
-    "interaction_action": {
-        "select_option": {
-            "command": "get_by_label(\"Country\")",
-            "select_values": ["United States"],
-            "prompt_instructions": "Select United States from the country dropdown"
+    ```json
+    "secure_parameters": {
+      "password": [{
+        "onepassword": {
+          "vault_name": "my_vault",
+          "item_name": "my_login",
+          "field_name": "password"
         }
+      }]
     }
-}
-```
+    ```
+  </Accordion>
+</AccordionGroup>
 
-### How is select elements different from clicking on the drop down?
+## Control Flow
 
-It is dependent on the website structure. if the element is select option then we use the select_option action. if it is a normal textbox which shows some options after we fill something then we use the input_text action and then click on the right option
+<AccordionGroup>
+  <Accordion title="How do I iterate over multiple items on a page?">
+    Use `for_loop_node` to iterate over values from input parameters or extracted data. See [For Loop Node](/docs/building-automations/for-loop-node).
+  </Accordion>
 
-### Automation is not working reliably as website does not load or downloads are not happening
+  <Accordion title="How do I handle conditional logic?">
+    Use `if_else_node` to execute different actions based on conditions. See [If Else Node](/docs/building-automations/if-else-node).
+  </Accordion>
+</AccordionGroup>
 
-If you believe automation is correct and not working, try changing the browser channel to Chrome.
+## Two-Factor Authentication
+
+<AccordionGroup>
+  <Accordion title="Can Optexity handle 2FA/MFA?">
+    Yes. Optexity integrates with authenticator apps (Google Authenticator, Microsoft Authenticator, Authy). See [TOTP Integration](/docs/advanced/totp-integration).
+  </Accordion>
+
+  <Accordion title="Do you handle OTP over email?">
+    This is a work in progress. Contact us for details.
+  </Accordion>
+</AccordionGroup>
+
+## Data & Downloads
+
+<AccordionGroup>
+  <Accordion title="How do I access downloaded files?">
+    Use the `GET /api/v1/get_downloads` endpoint. Downloaded files are stored in cloud storage with signed URLs. See [Downloads & Files](/docs/advanced/downloads-files).
+  </Accordion>
+
+  <Accordion title="Where is my extracted data stored?">
+    Extracted data is stored in Optexity cloud storage. Retrieve it via `GET /api/v1/get_output_data` or receive it in callbacks.
+  </Accordion>
+
+  <Accordion title="Do I have to poll to get results?">
+    No. Set up a callback URL in the dashboard to receive data automatically when automation completes. See [Callbacks](/docs/advanced/callbacks).
+  </Accordion>
+</AccordionGroup>
+
+## Form Interactions
+
+<AccordionGroup>
+  <Accordion title="How do I fill a field and select from a dropdown that appears?">
+    Use two sequential actions: first `input_text` to type, then `click_element` to select. Add `before_sleep_time` to wait for the dropdown.
+
+    ```json
+    [
+      {
+        "type": "action_node",
+        "interaction_action": {
+          "input_text": {
+            "command": "get_by_role(\"textbox\", name=\"Search\")",
+            "input_text": "{search_term[0]}"
+          }
+        },
+        "end_sleep_time": 1
+      },
+      {
+        "type": "action_node",
+        "interaction_action": {
+          "click_element": {
+            "prompt_instructions": "Click on the dropdown option '{search_term[0]}'."
+          }
+        },
+        "before_sleep_time": 2
+      }
+    ]
+    ```
+  </Accordion>
+
+  <Accordion title="How do I select from a native dropdown?">
+    Use `select_option` for native `<select>` elements:
+
+    ```json
+    {
+      "type": "action_node",
+      "interaction_action": {
+        "select_option": {
+          "command": "get_by_label(\"Country\")",
+          "select_values": ["United States"]
+        }
+      }
+    }
+    ```
+
+    Use `input_text` + `click_element` for custom dropdowns that populate after typing.
+  </Accordion>
+
+  <Accordion title="How do I skip an action when the element might not exist?">
+    Omit the `command` field to use AI-based element finding, or set `skip_prompt: true` with `assert_locator_presence: true` to skip gracefully.
+  </Accordion>
+</AccordionGroup>
+
+## Pricing & Access
+
+<AccordionGroup>
+  <Accordion title="Do you have a free tier?">
+    Yes. All automations are free to build and run using the [open source version](https://github.com/Optexity/optexity).
+  </Accordion>
+
+  <Accordion title="Do you provide cloud browsers?">
+    Yes. Contact founders@optexity.com to request cloud access.
+  </Accordion>
+</AccordionGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Does Optexity handle CAPTCHAs?">
+    Yes. Stealth mode prevents most CAPTCHAs in both open source and cloud versions.
+  </Accordion>
+
+  <Accordion title="Automation is not working reliably">
+    If the automation is correct but failing, try changing `browser_channel` to `"chrome"` instead of `"chromium"` in your automation definition. Some websites work better with Chrome.
+  </Accordion>
+</AccordionGroup>

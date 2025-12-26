@@ -1,20 +1,81 @@
 ---
 title: Callbacks
-description: Using callbacks to receive status and data of your automations
+description: Receive notifications when automations complete
 ---
 
-Optexity provides ability to receive callbacks when your automations are completed. You can read about the specification of the data received in the callback [here](/api-reference/callback).
+Set up callbacks to receive automation results without polling.
 
-# How to use callbacks in your automations
+## Overview
 
-## Using callbacks in local development
+Optexity sends HTTP POST requests to your callback URL when automations complete.
 
-You can use callbacks in local development by using the `LOCAL_CALLBACK_URL` environment variable. This will cause Optexity to send the callback data to the URL you specify. You can use this to test your automations locally. The URL can be any valid URL which is publicly accessible or accessible on the same network as the machine running the automation. The callback endpoint in local needs to be unauthenticated.
+| Environment | Configuration |
+|-------------|---------------|
+| Local | `LOCAL_CALLBACK_URL` environment variable |
+| Production | Set in dashboard |
 
-```python
+---
+
+## Local Development
+
+Set the environment variable:
+
+```bash
 LOCAL_CALLBACK_URL=http://localhost:3000/receive_callback
 ```
 
-## Using callbacks in production
+Requirements:
+- URL must be accessible from the machine running the automation
+- Endpoint must be unauthenticated
 
-You can use callbacks in production by setting the CALLBACK_URL in the dashboard. The callback endpoint can be authenticated or unauthenticated. We can callback on URLs authenticated by API key or by username and password. All the URLs should be publicly accessible from the internet.
+---
+
+## Production
+
+Configure in the Optexity dashboard:
+- Callback URL must be publicly accessible
+- Supports API key authentication
+- Supports username/password authentication
+
+---
+
+## Callback Payload
+
+```json
+{
+  "task_id": "abc123",
+  "recording_id": "rec456",
+  "endpoint_name": "login-flow",
+  "status": "success",
+  "output_data": [
+    {"name": "email", "value": "test@example.com"}
+  ],
+  "error": null,
+  "final_screenshot": "base64_encoded_string",
+  "downloads": [
+    {"url": "signed_url", "filename": "report.pdf"}
+  ]
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `task_id` | `str` | Unique task identifier |
+| `status` | `str` | `queued`, `allocated`, `running`, `success`, `failed`, `cancelled` |
+| `output_data` | `list` | Extracted data objects |
+| `error` | `str \| null` | Error message if failed |
+| `final_screenshot` | `str` | Base64 screenshot |
+| `downloads` | `list` | Download URLs and filenames |
+
+---
+
+## Authentication
+
+| Type | Fields Required |
+|------|-----------------|
+| API Key | `api_key` |
+| Basic Auth | `username`, `password` |
+
+<Info>
+See [Callback Reference](/api-reference/callback) for complete schema details.
+</Info>

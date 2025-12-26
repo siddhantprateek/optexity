@@ -3,105 +3,125 @@ title: Automation Structure
 description: Understanding the structure of Optexity automations
 ---
 
-Optexity uses a declarative model for browser automation. Instead of writing imperative scripts, you define **what** actions to perform, and Optexity handles the **how** using AI-assisted element location and robust execution.
+Optexity uses a declarative model for browser automation. Define **what** actions to perform, and Optexity handles the **how** using AI-assisted element location.
 
-## The Automation Model
-
-Every Optexity automation consists of three main components:
+## Overview
 
 ```
 Automation
-├── url           # Starting point
-├── expected_downloads # Number of expected downloads
-├── browser_channel    # Chromium or Chrome
-├── parameters    # Input and generated variables
-└── nodes[]       # Sequence of actions
+├── url                  # Starting point
+├── browser_channel      # "chromium" or "chrome"
+├── expected_downloads   # Number of files to download
+├── parameters           # Input, secure, and generated variables
+└── nodes[]              # Sequence of actions
     ├── action_node
     ├── for_loop_node
     └── if_else_node
 ```
 
-## Automation
-
-The `Automation` class is the top-level container for your workflow.
+## Complete Example
 
 ```json
 {
-    "url": "https://example.com/login",
-    "parameters": {
-        "input_parameters": {
-            "email": ["user@example.com"]
-        },
-        "generated_parameters": {}
+  "url": "https://example.com/login",
+  "browser_channel": "chromium",
+  "expected_downloads": 0,
+  "parameters": {
+    "input_parameters": {
+      "email": ["user@example.com"]
     },
-    "nodes": [
-        // ActionNodes go here
-    ],
-    "expected_downloads": 1,
-    "browser_channel": "chromium"
+    "secure_parameters": {},
+    "generated_parameters": {}
+  },
+  "nodes": [
+    {
+      "type": "action_node",
+      "interaction_action": {
+        "input_text": {
+          "command": "get_by_label(\"Email\")",
+          "input_text": "{email[0]}"
+        }
+      }
+    }
+  ]
 }
 ```
 
-### Properties
+## Properties
 
-| Property             | Type                                            | Description                                        |
-| -------------------- | ----------------------------------------------- | -------------------------------------------------- |
-| `url`                | `str`                                           | The starting URL where the browser navigates first |
-| `parameters`         | `Parameters`                                    | Container for input and generated variables        |
-| `nodes`              | `list[ActionNode \| ForLoopNode \| IfElseNode]` | Ordered list of actions to execute                 |
-| `expected_downloads` | `int`                                           | Number of expected downloads                       |
-| `browser_channel`    | `chromium \| chrome`                            | Browser channel to use                             |
+| Property | Type | Description |
+|----------|------|-------------|
+| `url` | `str` | Starting URL—use the URL closest to your target to reduce navigation steps |
+| `browser_channel` | `"chromium" \| "chrome"` | Browser to use (default: `"chromium"`) |
+| `expected_downloads` | `int` | Number of expected downloads (automation waits for completion) |
+| `parameters` | `Parameters` | Input, secure, and generated variables |
+| `nodes` | `list[action_node \| for_loop_node \| if_else_node]` | Ordered list of actions |
 
-## URL
+## Parameters
 
-The URL is the starting point of your automation. It is the URL where the browser navigates first. This is required. Try giving ULR which is closest to final URL you want to navigate to to reduce number of navigation steps.
+Three types of parameters control data flow:
+
+| Type | Purpose | Example |
+|------|---------|---------|
+| `input_parameters` | Values provided before execution | Username, search queries |
+| `secure_parameters` | Sensitive data from secure storage | Passwords, API keys |
+| `generated_parameters` | Values extracted during execution | Order IDs, confirmation numbers |
 
 ```json
 {
-    "url": "https://example.com/login"
+  "parameters": {
+    "input_parameters": {
+      "username": ["admin@example.com"]
+    },
+    "secure_parameters": {
+      "password": [{
+        "onepassword": {
+          "vault_name": "vault",
+          "item_name": "login",
+          "field_name": "password"
+        }
+      }]
+    },
+    "generated_parameters": {
+      "order_ids": []
+    }
+  }
+}
+```
+
+<Tip>
+See [Parameters](/docs/building-automations/parameters) for detailed usage.
+</Tip>
+
+## Node Types
+
+| Node | Purpose | Documentation |
+|------|---------|---------------|
+| `action_node` | Single atomic action | [Action Node](/docs/building-automations/action-node) |
+| `for_loop_node` | Iterate over values | [For Loop Node](/docs/building-automations/for-loop-node) |
+| `if_else_node` | Conditional execution | [If Else Node](/docs/building-automations/if-else-node) |
+
+## Browser Channel
+
+| Channel | Use When |
+|---------|----------|
+| `"chromium"` | Default, works for most sites |
+| `"chrome"` | Site requires Chrome specifically, or automation is unreliable with Chromium |
+
+```json
+{
+  "browser_channel": "chrome"
 }
 ```
 
 ## Expected Downloads
 
-The expected downloads is the number of expected downloads. It is the number of downloads that are expected to be made during the automation. If this is set, optexity will wait for all downloads to be completed before completing the automation.
+Set this to wait for file downloads to complete:
 
 ```json
 {
-    "expected_downloads": 1
+  "expected_downloads": 3
 }
 ```
 
-## Browser Channel
-
-The browser channel is the browser channel to use. It is the browser channel to use for the automation. Currently, only Chromium and Chrome are supported. Chromium is the default. However, some websites might not work with Chromium. In that case, you can try using Chrome.
-
-```json
-{
-    "browser_channel": "chromium"
-}
-```
-
-## Parameters
-
-Parameters define the data flowing through your automation. They're divided into three categories:
-
-| Type                     | Purpose                                                           | When Set                                       |
-| ------------------------ | ----------------------------------------------------------------- | ---------------------------------------------- |
-| **Input Parameters**     | Data provided before execution                                    | Before automation runs                         |
-| **Generated Parameters** | Data extracted during execution                                   | During automation via extraction actions       |
-| **Secure Parameters**    | Sensitive information like passwords, API keys, and other secrets | Stored in secure environment like One Password |
-
-Detailed information about parameters is available in the [Parameters](/docs/building-automations/parameters) documentation.
-
-## Nodes
-
-There are three types of nodes:
-
-| Type            | Purpose                                               |
-| --------------- | ----------------------------------------------------- |
-| **ActionNode**  | Represents a single atomic action in your automation. |
-| **ForLoopNode** | Iterates over values in a variable.                   |
-| **IfElseNode**  | Conditional execution based on a condition.           |
-
-Detailed information about nodes is available in the [ActionNode](/docs/building-automations/action-node), [ForLoopNode](/docs/building-automations/for-loop-node), and [IfElseNode](/docs/building-automations/if-else-node) documentation.
+The automation waits until all expected files are downloaded before completing.

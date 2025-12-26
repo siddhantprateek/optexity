@@ -1,472 +1,284 @@
 ---
 title: Parameters
-description: Understanding the parameters of Optexity automations
+description: Passing data in, extracting data out, and using dynamic values in automations
 ---
 
-Parameters are the backbone of data flow in Optexity automations. They allow you to pass data in, extract data out, and use dynamic values throughout your workflow.
+Parameters control data flow in Optexity automations. They enable you to run the same automation with different inputs and capture outputs for use in subsequent steps.
 
-## Parameters
+## Parameter Types
 
-Parameters define the data flowing through your automation. They're divided into three categories:
+| Type | Purpose | When Set | Example Use |
+|------|---------|----------|-------------|
+| `input_parameters` | Data you provide | Before execution | Username, search queries |
+| `generated_parameters` | Data extracted during execution | During automation | Order IDs, confirmation numbers |
+| `secure_parameters` | Sensitive data from secure storage | Retrieved at runtime | Passwords, API keys, TOTP codes |
 
-| Type                     | Purpose                                                           | When Set                                       |
-| ------------------------ | ----------------------------------------------------------------- | ---------------------------------------------- |
-| **Input Parameters**     | Data provided before execution                                    | Before automation runs                         |
-| **Generated Parameters** | Data extracted during execution                                   | During automation via extraction actions       |
-| **Secure Parameters**    | Sensitive information like passwords, API keys, and other secrets | Stored in secure environment like One Password |
+## Defining Parameters
 
-### Value Format
-
-All parameter values are stored as **lists of strings**:
+All parameters must be declared in the automation's `parameters` object:
 
 ```json
 {
+  "parameters": {
     "input_parameters": {
-        "single_value": ["one"],
-        "multiple_values": ["a", "b", "c"],
-        "numeric_as_string": ["42", "100"],
-        "dates": ["2024-01-15"]
+      "username": ["example_username"],
+      "search_queries": ["query1", "query2"]
+    },
+    "secure_parameters": {
+      "password": [{
+        "onepassword": {
+          "vault_name": "vault",
+          "item_name": "login",
+          "field_name": "password"
+        }
+      }]
+    },
+    "generated_parameters": {
+      "order_ids": []
     }
+  }
 }
 ```
 
 <Warning>
-    Always use lists, even for single values. `"value"` is invalid; use `["value"]` instead.
+Values must always be lists: `["value"]` not `"value"`.
 </Warning>
 
-### Input Parameters
+## Accessing Parameters
 
-Values you provide before execution starts. Think of these as the "inputs" to your automation:
+Use `{variable_name[index]}` syntax to reference values:
 
-```json
-{
-    "input_parameters": {
-        "family_name": ["Doe"],
-        "first_name": ["John"],
-        "search_query": ["laptop", "monitor"]
-    }
-}
-```
-
-### Generated Parameters
-
-Values extracted during execution. These are populated by extraction actions and can be used in subsequent steps:
-
-```json
-{
-    "generated_parameters": {
-        "order_id": [],
-        "confirmation": []
-    }
-}
-```
-
-### Secure Parameters
-
-Secure parameters are used to store sensitive information like passwords, API keys, and other secrets. They are stored in secure environment like One Password. You do not need to give exact values here. We determine the exact value during execution without exposing the sensitive information to the user. Currently, only One Password is supported. In future, we will support Amazon Secrets Manager as well.
-
-```json
-{
-    "secure_parameters": {
-        "password": [
-            {
-                "onepassword": {
-                    "vault_name": "test_vault",
-                    "item_name": "fedex",
-                    "field_name": "password"
-                }
-            }
-        ]
-    }
-}
-```
-
-You can learn more about secure parameters in the [One Password Integration](/docs/advanced/onepassword) documentation.
-
-You can also use TOTP codes in secure parameters. You can learn more about TOTP codes in the [TOTP Integration](/docs/advanced/totp-integration) documentation.
-
-### Adding parameters to automation
-
-All input parameters, secure parameters and generated parameters need to be declared in the parameters object of the automation. This ensures static checks in automation schema so that you do not face errors at runtime. The values of these parameters in the automation object are arbitrary. The actual values are passed in the inference request.
-
-```json
-{
-    "parameters": {
-        "input_parameters": {
-            "username": ["example_username"]
-        },
-        "secure_parameters": {
-            "password": [
-                {
-                    "onepassword": {
-                        "vault_name": "example_vault",
-                        "item_name": "example_item",
-                        "field_name": "example_field"
-                    }
-                }
-            ],
-            "authenticator_code": [
-                {
-                    "totp": {
-                        "vault_name": "example_vault",
-                        "item_name": "example_item",
-                        "field_name": "example_field"
-                    }
-                }
-            ]
-        },
-        "generated_parameters": {
-            "order_id": []
-        }
-    }
-}
-```
-
-### Sending parameters in inference request
-
-All inout parameters and secure parameters need to be passed in the inference request. These are the actual values that are used in the automation. Generated parameters are not passed in the inference request. They are populated by extraction actions during execution.
-
-```json
-{
-    "input_parameters": {
-        "username": ["actual_username"]
-    },
-    "secure_parameters": {
-        "password": [
-            {
-                "onepassword": {
-                    "type": "raw",
-                    "vault_name": "actual_vault",
-                    "item_name": "actual_item",
-                    "field_name": "actual_password_field"
-                }
-            }
-        ],
-        "authenticator_code": [
-            {
-                "totp": {
-                    "type": "totp_secret",
-                    "vault_name": "actual_vault",
-                    "item_name": "actual_item",
-                    "field_name": "actual_authenticator_code_field"
-                }
-            }
-        ]
-    }
-}
-```
-
-### Accessing Parameters
-
-Use the `{variable_name[index]}` syntax to reference parameter values:
-
-```json
-{
-    "input_text": "{username[0]}",
-    "prompt_instructions": "Click on order {order_id[index]}"
-}
-```
-
-Examples:
-
-- `"{username[0]}"` - Access first value
-- `"{search_query[1]}"` - Access second value
-- `"{order_id[index]}"` - In loops, use `{variable_name[index]}` where index iterates
-
-Most parameters are single values. Hence to access the value, you need to use the index `0`. eg `"{username[0]}"`.
-
-If you are iterating over a list of values, you need to use the index `index`. eg `"{order_id[index]}"`. this will be replaced with the current value of the loop. You can find more information about loops in the [for_loop_node](/docs/building-automations/for-loop-node) documentation.
-
-## Variable Substitution Syntax
-
-Reference parameter values using the `{variable_name[index]}` syntax:
-
-```json
-{
-    "input_text": "{username[0]}"
-}
-```
+| Syntax | Use Case | Example |
+|--------|----------|---------|
+| `{username[0]}` | First (or only) value | Single email address |
+| `{items[1]}` | Second value | Specific list item |
+| `{order_ids[index]}` | Current loop iteration | In `for_loop_node` |
 
 ### Where Substitution Works
 
-Variable substitution works in these fields:
+| Field | Example |
+|-------|---------|
+| `input_text` | `"{email[0]}"` |
+| `prompt_instructions` | `"Click order {order_id[0]}"` |
+| `command` | `get_by_text("{item[0]}")` |
+| `xpath` | `//td[text()='{id[0]}']` |
+| `select_values` | `["{country[0]}"]` |
+| `task` (agentic) | `"Search for {query[0]}"` |
 
-| Field                 | Example                                           |
-| --------------------- | ------------------------------------------------- |
-| `input_text`          | `input_text="{email[0]}"`                         |
-| `prompt_instructions` | `prompt_instructions="Click order {order_id[0]}"` |
-| `command`             | `command="""get_by_text("{item_name[0]}")"""`     |
-| `xpath`               | `xpath="//td[text()='{order_id[0]}']"`            |
-| `select_values`       | `select_values=["{country[0]}"]`                  |
-| `task` (agentic)      | `task="Search for {query[0]}"`                    |
+## Input Parameters
 
-### Loop Index Variable
+Values provided before execution. Declare placeholder values in the automation; actual values are passed in the inference request.
 
-In `for_loop_node`, use `{variable_name[index]}` to reference the current iteration's value:
-
+**In automation:**
 ```json
-{
-    "type": "for_loop_node",
-    "variable_name": "product_ids",
-    "nodes": [
-        {
-            "type": "action_node",
-            "interaction_action": {
-                "click_element": {
-                    "command": "get_by_text(\"{product_ids[index]}\")",
-                    "prompt_instructions": "Click on product {product_ids[index]}"
-                }
-            }
-        }
-    ]
+"input_parameters": {
+  "family_name": ["placeholder"],
+  "first_name": ["placeholder"]
 }
 ```
 
-If `product_ids` contains `["PROD-1", "PROD-2", "PROD-3"]`:
-
-- First iteration: `{product_ids[index]}` → `"PROD-1"`
-- Second iteration: `{product_ids[index]}` → `"PROD-2"`
-- Third iteration: `{product_ids[index]}` → `"PROD-3"`
-
-### Example: Multiple Search Queries
-
+**In inference request:**
 ```json
-{
-    "parameters": {
-        "input_parameters": {
-            "search_terms": ["laptop", "monitor", "keyboard"]
-        },
-        "generated_parameters": {}
-    },
-    "nodes": [
-        {
-            "type": "for_loop_node",
-            "variable_name": "search_terms",
-            "nodes": [
-                {
-                    "type": "action_node",
-                    "interaction_action": {
-                        "input_text": {
-                            "command": "get_by_role(\"searchbox\")",
-                            "input_text": "{search_terms[index]}",
-                            "prompt_instructions": "Enter search term"
-                        }
-                    }
-                }
-            ]
-        }
-    ]
+"input_parameters": {
+  "family_name": ["Smith"],
+  "first_name": ["John"]
 }
 ```
 
 ## Generated Parameters
 
-Generated parameters are populated during automation execution, typically by extraction actions.
+Values extracted during execution. Initialize as empty lists; they're populated by extraction actions.
 
-### Defining Output Variables
+```json
+"generated_parameters": {
+  "order_ids": [],
+  "confirmation": []
+}
+```
 
-Use `output_variable_names` in `LLMExtraction` to specify which extracted fields should be stored:
+Populate using `output_variable_names` in extraction actions:
 
 ```json
 {
-    "type": "action_node",
-    "extraction_action": {
-        "llm": {
-            "source": ["axtree"],
-            "extraction_format": {
-                "order_ids": "List[str]",
-                "total_count": "str"
-            },
-            "extraction_instructions": "Extract all order IDs from the table",
-            "output_variable_names": ["order_ids"]
-        }
+  "extraction_action": {
+    "llm": {
+      "extraction_format": { "order_ids": "List[str]" },
+      "extraction_instructions": "Extract all order IDs from the table",
+      "output_variable_names": ["order_ids"]
     }
+  }
 }
 ```
 
-After this action executes, `order_ids` will be available in `generated_parameters` and can be used in subsequent actions.
+After extraction, use `{order_ids[index]}` in subsequent actions or iterate with `for_loop_node`.
 
-### Using Extracted Values
+<Info>
+Only `str` and `List[str]` types can be stored as variables. Other types can be extracted but won't be available for substitution.
+</Info>
+
+## Secure Parameters
+
+Sensitive values retrieved from secure storage at runtime. Never hardcode passwords in automations.
+
+### 1Password Integration
 
 ```json
-{
-    "parameters": {
-        "input_parameters": {},
-        "generated_parameters": {
-            "order_ids": []
-        }
-    },
-    "nodes": [
-        {
-            "type": "action_node",
-            "extraction_action": {
-                "llm": {
-                    "extraction_format": {
-                        "order_ids": "List[str]"
-                    },
-                    "output_variable_names": ["order_ids"]
-                }
-            }
-        },
-        {
-            "type": "for_loop_node",
-            "variable_name": "order_ids",
-            "nodes": [
-                {
-                    "type": "action_node",
-                    "interaction_action": {
-                        "click_element": {
-                            "prompt_instructions": "Click on order {order_ids[index]}"
-                        }
-                    }
-                }
-            ]
-        }
-    ]
+"secure_parameters": {
+  "password": [{
+    "onepassword": {
+      "type": "raw",
+      "vault_name": "my_vault",
+      "item_name": "my_login",
+      "field_name": "password"
+    }
+  }]
 }
 ```
 
-## Data Flow Example
+### TOTP Codes
 
-Here's a complete example showing how data flows through an automation:
+Generate 2FA codes from a TOTP secret:
+
+```json
+"secure_parameters": {
+  "auth_code": [{
+    "totp": {
+      "totp_secret": "BASE32SECRET"
+    }
+  }]
+}
+```
+
+Or retrieve TOTP secret from 1Password:
+
+```json
+"secure_parameters": {
+  "auth_code": [{
+    "onepassword": {
+      "type": "totp_secret",
+      "vault_name": "vault",
+      "item_name": "login",
+      "field_name": "totp_secret",
+      "digits": 6
+    }
+  }]
+}
+```
+
+<Tip>
+See [1Password Integration](/docs/advanced/onepassword) and [TOTP Integration](/docs/advanced/totp-integration) for setup instructions.
+</Tip>
+
+## Loop Index Variable
+
+In `for_loop_node`, use `{variable[index]}` for the current iteration value:
 
 ```json
 {
-    "url": "https://orders.example.com",
-    "parameters": {
-        "input_parameters": {
-            "username": ["admin@example.com"],
-            "password": ["secret123"],
-            "date_range": ["last-30-days"]
-        },
-        "generated_parameters": {
-            "order_numbers": []
-        }
+  "type": "for_loop_node",
+  "variable_name": "product_ids",
+  "nodes": [{
+    "type": "action_node",
+    "interaction_action": {
+      "click_element": {
+        "command": "get_by_text(\"{product_ids[index]}\")",
+        "prompt_instructions": "Click product {product_ids[index]}"
+      }
+    }
+  }]
+}
+```
+
+If `product_ids = ["PROD-1", "PROD-2", "PROD-3"]`:
+- Iteration 1: `{product_ids[index]}` → `"PROD-1"`
+- Iteration 2: `{product_ids[index]}` → `"PROD-2"`  
+- Iteration 3: `{product_ids[index]}` → `"PROD-3"`
+
+## Complete Example
+
+This automation logs in, extracts order IDs, and processes each order:
+
+```json
+{
+  "url": "https://orders.example.com",
+  "parameters": {
+    "input_parameters": {
+      "username": ["admin@example.com"]
     },
-    "nodes": [
-        {
-            "type": "action_node",
-            "interaction_action": {
-                "input_text": {
-                    "input_text": "{username[0]}",
-                    "prompt_instructions": "Enter username",
-                    "command": "get_by_label(\"Email\")"
-                }
-            }
-        },
-        {
-            "type": "action_node",
-            "interaction_action": {
-                "input_text": {
-                    "input_text": "{password[0]}",
-                    "prompt_instructions": "Enter password",
-                    "command": "get_by_label(\"Password\")"
-                }
-            }
-        },
-        {
-            "type": "action_node",
-            "interaction_action": {
-                "click_element": {
-                    "command": "get_by_text(\"{date_range[0]}\")",
-                    "prompt_instructions": "Select the date range filter"
-                }
-            }
-        },
-        {
-            "type": "action_node",
-            "extraction_action": {
-                "llm": {
-                    "source": ["axtree"],
-                    "extraction_format": {
-                        "order_numbers": "List[str]"
-                    },
-                    "extraction_instructions": "Extract all order numbers from the table",
-                    "output_variable_names": ["order_numbers"]
-                }
-            }
-        },
-        {
-            "type": "for_loop_node",
-            "variable_name": "order_numbers",
-            "nodes": [
-                {
-                    "type": "action_node",
-                    "interaction_action": {
-                        "click_element": {
-                            "command": "get_by_text(\"{order_numbers[index]}\")",
-                            "prompt_instructions": "Click on order {order_numbers[index]}"
-                        }
-                    }
-                }
-            ]
+    "secure_parameters": {
+      "password": [{
+        "onepassword": {
+          "type": "raw",
+          "vault_name": "vault",
+          "item_name": "orders",
+          "field_name": "password"
         }
-    ]
+      }]
+    },
+    "generated_parameters": {
+      "order_ids": []
+    }
+  },
+  "nodes": [
+    {
+      "type": "action_node",
+      "interaction_action": {
+        "input_text": {
+          "command": "get_by_label(\"Email\")",
+          "input_text": "{username[0]}"
+        }
+      }
+    },
+    {
+      "type": "action_node",
+      "interaction_action": {
+        "input_text": {
+          "command": "get_by_label(\"Password\")",
+          "input_text": "{password[0]}"
+        }
+      }
+    },
+    {
+      "type": "action_node",
+      "interaction_action": {
+        "click_element": {
+          "command": "get_by_role(\"button\", name=\"Sign In\")"
+        }
+      }
+    },
+    {
+      "type": "action_node",
+      "extraction_action": {
+        "llm": {
+          "extraction_format": { "order_ids": "List[str]" },
+          "extraction_instructions": "Extract all order IDs",
+          "output_variable_names": ["order_ids"]
+        }
+      }
+    },
+    {
+      "type": "for_loop_node",
+      "variable_name": "order_ids",
+      "nodes": [{
+        "type": "action_node",
+        "interaction_action": {
+          "click_element": {
+            "command": "get_by_text(\"{order_ids[index]}\")",
+            "prompt_instructions": "Click order {order_ids[index]}"
+          }
+        }
+      }]
+    }
+  ]
 }
 ```
 
 ## Best Practices
 
-### Naming Conventions
-
-Use descriptive, consistent names:
-
-```json
-{
-    "input_parameters": {
-        "search_query": ["..."],
-        "date_of_birth": ["..."],
-        "member_ids": ["..."]
-    }
-}
-```
-
-Avoid abbreviated or unclear names:
-
-```json
-{
-    "input_parameters": {
-        "q": ["..."],
-        "dob": ["..."],
-        "ids": ["..."]
-    }
-}
-```
-
-### Placeholder Values for Development
-
-When defining automations, use placeholder values that are easy to replace:
-
-```json
-{
-    "input_parameters": {
-        "username": ["test@test.com"],
-        "password": ["password"],
-        "account_id": ["ACC-XXXXX"]
-    }
-}
-```
-
-### Type Hints in Extraction
-
-Use type hints in extraction formats:
-
-```json
-{
-    "extraction_format": {
-        "single_value": "str",
-        "multiple_values": "List[str]"
-    }
-}
-```
-
-<Note>
-    Only `str` and `List[str]` are supported for `output_variable_names`. Other types can be
-    extracted but won't be stored as variables.
-</Note>
-
-## Next Steps
-
-- Learn about [Extraction Actions](/docs/extraction-actions) to populate generated parameters
-- See [Control Flow](/docs/control-flow) for using variables in loops
-- Check [Best Practices](/docs/best-practices) for more tips
+| Practice | Example |
+|----------|---------|
+| Use descriptive names | `patient_date_of_birth` not `dob` |
+| Use placeholder values in automation | `["placeholder@test.com"]` |
+| Pass real values in inference request | Actual user credentials |
+| Initialize generated params as empty | `"order_ids": []` |
+| Always use lists | `["value"]` not `"value"` |
