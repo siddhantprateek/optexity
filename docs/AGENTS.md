@@ -206,6 +206,52 @@ Use `<CardGroup>` to present multiple related options or paths forward.
 
 ## Code Examples
 
+### Tables for Parameters
+
+Use tables to provide a concise summary of parameters, options, or configuration values. Tables are excellent for quick reference as they present information in a scannable format without taking excessive space.
+
+```markdown
+## Configuration Options
+
+| Option    | Type   | Default | Description                     |
+| --------- | ------ | ------- | ------------------------------- |
+| `apiKey`  | string | -       | Your API key                    |
+| `timeout` | number | 5000    | Request timeout in milliseconds |
+| `retries` | number | 3       | Number of retry attempts        |
+```
+
+After the table, provide detailed explanations for complex parameters:
+
+```markdown
+### Detailed Parameter Explanations
+
+**apiKey**
+
+Your unique API key for authentication. You can find this in your dashboard under Settings > API Keys. Keep this key secure and never commit it to version control.
+
+**timeout**
+
+Maximum time in milliseconds to wait for a response before timing out. If your requests frequently timeout, consider increasing this value. However, very high timeout values may impact user experience.
+
+**retries**
+
+Number of times to automatically retry failed requests. The client will use exponential backoff between retries. Set to 0 to disable automatic retries.
+```
+
+**When to use tables:**
+
+- Summarizing configuration options or parameters
+- Comparing features or plans
+- Listing supported values or formats
+- Quick reference for method signatures
+
+**When to add detailed explanations:**
+
+- Parameters have complex behavior or constraints
+- Values require context or examples
+- Security or performance implications exist
+- Common mistakes or gotchas need clarification
+
 ### Code Blocks
 
 Always specify the language for syntax highlighting:
