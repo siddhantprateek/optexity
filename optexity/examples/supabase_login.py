@@ -1,92 +1,75 @@
-from optexity.schema.actions.assertion_action import AssertionAction, LLMAssertion
-from optexity.schema.actions.interaction_action import (
-    ClickElementAction,
-    InputTextAction,
-    InteractionAction,
-)
-from optexity.schema.automation import (
-    ActionNode,
-    Automation,
-    OnePasswordParameter,
-    Parameters,
-    SecureParameter,
-)
+from optexity.schema.automation import Automation
 
 description = "Supabase Login Example"
 endpoint_name = "supabase_login"
-automation = Automation(
-    url="https://supabase.com",
-    parameters=Parameters(
-        input_parameters={},
-        generated_parameters={},
-        secure_parameters={
+automation_json = {
+    "url": "https://supabase.com",
+    "parameters": {
+        "input_parameters": {},
+        "secure_parameters": {
             "username": [
-                SecureParameter(
-                    onepassword=OnePasswordParameter(
-                        vault_name="optexity_automation",
-                        item_name="supabase",
-                        field_name="username",
-                    )
-                )
+                {
+                    "onepassword": {
+                        "vault_name": "optexity_automation",
+                        "item_name": "supabase",
+                        "field_name": "username",
+                    }
+                }
             ],
             "password": [
-                SecureParameter(
-                    onepassword=OnePasswordParameter(
-                        vault_name="optexity_automation",
-                        item_name="supabase",
-                        field_name="password",
-                    )
-                )
+                {
+                    "onepassword": {
+                        "vault_name": "optexity_automation",
+                        "item_name": "supabase",
+                        "field_name": "password",
+                    }
+                }
             ],
         },
-    ),
-    nodes=[
-        ActionNode(
-            type="action_node",
-            interaction_action=InteractionAction(
-                click_element=ClickElementAction(
-                    command="""get_by_role("link", name="Sign in")""",
-                    prompt_instructions="Click the Sign in link",
-                )
-            ),
-        ),
-        ActionNode(
-            type="action_node",
-            interaction_action=InteractionAction(
-                input_text=InputTextAction(
-                    command="""get_by_role("textbox", name="Email")""",
-                    input_text="{username[0]}",
-                    prompt_instructions="Enter the email",
-                )
-            ),
-        ),
-        ActionNode(
-            type="action_node",
-            interaction_action=InteractionAction(
-                input_text=InputTextAction(
-                    command="""get_by_role("textbox", name="Password")""",
-                    input_text="{password[0]}",
-                    press_enter=True,
-                    prompt_instructions="Enter the password",
-                )
-            ),
-        ),
-        # ActionNode(
-        #     type="action_node",
-        #     interaction_action=InteractionAction(
-        #         click_element=ClickElementAction(
-        #             command="""get_by_role("button", name="Sign In")""",
-        #             prompt_instructions="Click the Sign In button",
-        #         )
-        #     ),
-        # ),
-        # ActionNode(
-        #     type="action_node",
-        #     assertion_action=AssertionAction(
-        #         llm=LLMAssertion(
-        #             extraction_instructions="Check if the login was successful",
-        #         )
-        #     ),
-        # ),
+        "generated_parameters": {},
+    },
+    "nodes": [
+        {
+            "type": "action_node",
+            "interaction_action": {
+                "click_element": {
+                    "command": 'get_by_role("link", name="Sign in")',
+                    "prompt_instructions": "Click the Sign in link",
+                }
+            },
+            "end_sleep_time": 1.0,
+        },
+        {
+            "type": "action_node",
+            "interaction_action": {
+                "input_text": {
+                    "command": 'get_by_role("textbox", name="Email")',
+                    "prompt_instructions": "Enter the email",
+                    "input_text": "{username[0]}",
+                }
+            },
+            "end_sleep_time": 1.0,
+        },
+        {
+            "type": "action_node",
+            "interaction_action": {
+                "input_text": {
+                    "command": 'get_by_role("textbox", name="Password")',
+                    "prompt_instructions": "Enter the password",
+                    "input_text": "{password[0]}",
+                    "press_enter": True,
+                }
+            },
+            "end_sleep_time": 1.0,
+        },
+        {
+            "type": "action_node",
+            "assertion_action": {
+                "llm": {"extraction_instructions": "Check if the login was successful"}
+            },
+            "end_sleep_time": 0.0,
+        },
     ],
-)
+}
+
+automation = Automation.model_validate(automation_json)
