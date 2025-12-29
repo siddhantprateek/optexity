@@ -45,7 +45,9 @@ class LLMModel:
         self.model_name = model_name
         self.use_structured_output = use_structured_output
 
-    def _get_model_response(self, prompt: str) -> tuple[str, TokenUsage]:
+    def _get_model_response(
+        self, prompt: str, system_instruction: Optional[str] = None
+    ) -> tuple[str, TokenUsage]:
         raise NotImplementedError("This method should be implemented by subclasses.")
 
     def _get_model_response_with_structured_output(
@@ -58,12 +60,14 @@ class LLMModel:
     ) -> tuple[BaseModel, TokenUsage]:
         raise NotImplementedError("This method should be implemented by subclasses.")
 
-    def get_model_response(self, prompt: str) -> tuple[str, TokenUsage]:
+    def get_model_response(
+        self, prompt: str, system_instruction: Optional[str] = None
+    ) -> tuple[str, TokenUsage]:
 
         max_retries = 3
         for i in range(max_retries):
             try:
-                return self._get_model_response(prompt)
+                return self._get_model_response(prompt, system_instruction)
             except Exception as e:
                 logger.error(f"LLM Error during inference: {e}")
                 if i < max_retries - 1:

@@ -97,11 +97,14 @@ class Gemini(LLMModel):
             token_usage = TokenUsage()
         return parsed_response, token_usage
 
-    def _get_model_response(self, prompt: str) -> tuple[str, TokenUsage]:
+    def _get_model_response(
+        self, prompt: str, system_instruction: Optional[str] = None
+    ) -> tuple[str, TokenUsage]:
 
         response = self.client.models.generate_content(
             model=self.model_name.value,
             contents=prompt,
+            config={"system_instruction": system_instruction},
         )
         token_usage = self.get_token_usage(
             input_tokens=response.usage_metadata.prompt_token_count,
