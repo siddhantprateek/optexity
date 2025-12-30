@@ -92,11 +92,11 @@ class ActionNode(BaseModel):
             )
 
         assert (
-            model.end_sleep_time >= 0 and model.end_sleep_time <= 10
-        ), "end_sleep_time must be greater than 0 and less than 10"
+            model.end_sleep_time >= 0 and model.end_sleep_time <= 30
+        ), "end_sleep_time must be greater than 0 and less than 30"
         assert (
-            model.max_new_tab_wait_time >= 0 and model.max_new_tab_wait_time <= 10
-        ), "max_new_tab_wait_time must be greater than 0 and less than 10"
+            model.max_new_tab_wait_time >= 0 and model.max_new_tab_wait_time <= 30
+        ), "max_new_tab_wait_time must be greater than 0 and less than 30"
 
         # --- Adjust defaults only if user didn't override them ---
         # We detect user-provided fields using model.__pydantic_fields_set__
