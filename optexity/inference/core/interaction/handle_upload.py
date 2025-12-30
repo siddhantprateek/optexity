@@ -20,7 +20,7 @@ async def handle_upload_file(
     max_timeout_seconds_per_try: float,
     max_tries: int,
 ):
-    if upload_file_action.command:
+    if upload_file_action.command and not upload_file_action.skip_command:
         last_error = await command_based_action_with_retry(
             upload_file_action,
             browser,
