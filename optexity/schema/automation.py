@@ -70,7 +70,7 @@ class ActionNode(BaseModel):
     python_script_action: PythonScriptAction | None = None
     fetch_2fa_action: Fetch2faAction | None = None
     before_sleep_time: float = 0.0
-    end_sleep_time: float = 3.0
+    end_sleep_time: float = 5.0
     expect_new_tab: bool = False
     max_new_tab_wait_time: float = 0.0
 
@@ -103,13 +103,12 @@ class ActionNode(BaseModel):
         user_set = model.__pydantic_fields_set__
 
         if "end_sleep_time" not in user_set:
-            model.end_sleep_time = (
-                0.0
-                if model.assertion_action
+            if (
+                model.assertion_action
                 or model.extraction_action
                 or model.fetch_2fa_action
-                else 1.0
-            )
+            ):
+                model.end_sleep_time = 0.0
 
         if "before_sleep_time" not in user_set:
             model.before_sleep_time = 3.0 if model.extraction_action else 0.0
