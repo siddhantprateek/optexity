@@ -46,6 +46,13 @@ async def command_based_action_with_retry(
         last_error = None
         try:
             locator = await browser.get_locator_from_command(action.command)
+            if try_index == 0:
+                try:
+                    await locator.wait_for(
+                        state="visible", timeout=max_timeout_seconds_per_try * 1000
+                    )
+                except Exception as e:
+                    pass
             is_visible = await locator.is_visible()
 
             if is_visible:
