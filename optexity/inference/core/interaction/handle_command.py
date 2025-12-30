@@ -23,7 +23,13 @@ logger = logging.getLogger(__name__)
 
 
 async def command_based_action_with_retry(
-    action: ClickElementAction | InputTextAction | SelectOptionAction | CheckAction,
+    action: (
+        ClickElementAction
+        | InputTextAction
+        | SelectOptionAction
+        | CheckAction
+        | UploadFileAction
+    ),
     browser: Browser,
     memory: Memory,
     task: Task,
@@ -83,7 +89,6 @@ async def command_based_action_with_retry(
                 return
         except Exception as e:
             last_error = e
-        finally:
             await asyncio.sleep(max_timeout_seconds_per_try)
 
     logger.debug(
