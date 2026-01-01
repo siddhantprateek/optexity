@@ -4,8 +4,9 @@ import logging
 from playwright.async_api import Locator
 
 from optexity.exceptions import AssertLocatorPresenceException
-from optexity.inference.core.interaction.handle_select_locator import (
-    select_option_locator,
+from optexity.inference.core.interaction.handle_select_utils import (
+    SelectOptionValue,
+    smart_select,
 )
 from optexity.inference.core.interaction.utils import handle_download
 from optexity.inference.infra.browser import Browser
@@ -207,3 +208,51 @@ async def uncheck_locator(
 
 async def upload_file_locator(upload_file_action: UploadFileAction, locator: Locator):
     await locator.set_input_files(upload_file_action.file_path)
+
+
+async def select_option_locator(
+    select_option_action: SelectOptionAction,
+    locator: Locator,
+    browser: Browser,
+    memory: Memory,
+    task: Task,
+    max_timeout_seconds_per_try: float,
+):
+    async def _actual_select_option():
+        options: list[dict[str, str]] = await locator.evaluate(
+            """
+        sel => Array.from(sel.options).map(o => ({
+            value: o.value,
+            label: o.label || o.textContent
+        }))
+    """
+        )
+
+        select_option_values = [
+            SelectOptionValue(value=o["value"], label=o["label"]) for o in options
+        ]
+
+        matched_values = await smart_select(
+            select_option_values, options, select_option_action.select_values, memory
+        )
+
+        logger.debug(
+            f"Matched values for {select_option_action.command}: {matched_values}"
+        )
+
+        await locator.select_option(
+            matched_values,
+            no_wait_after=True,
+            timeout=max_timeout_seconds_per_try * 1000,
+        )
+
+    if select_option_action.expect_download:
+        await handle_download(
+            _actual_select_option,
+            memory,
+            browser,
+            task,
+            select_option_action.download_filename,
+        )
+    else:
+        await _actual_select_option()
