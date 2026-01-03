@@ -7,7 +7,7 @@ from optexity.schema.actions.assertion_action import AssertionAction
 from optexity.schema.actions.extraction_action import ExtractionAction
 from optexity.schema.actions.interaction_action import InteractionAction
 from optexity.schema.actions.misc_action import PythonScriptAction
-from optexity.schema.actions.two_factor_auth_action import Fetch2faAction
+from optexity.schema.actions.two_factor_auth_action import TwoFactorAuthAction
 from optexity.utils.utils import get_onepassword_value, get_totp_code
 
 logger = logging.getLogger(__name__)
@@ -68,7 +68,7 @@ class ActionNode(BaseModel):
     assertion_action: AssertionAction | None = None
     extraction_action: ExtractionAction | None = None
     python_script_action: PythonScriptAction | None = None
-    fetch_2fa_action: Fetch2faAction | None = None
+    two_factor_auth_action: TwoFactorAuthAction | None = None
     before_sleep_time: float = 0.0
     end_sleep_time: float = 5.0
     expect_new_tab: bool = False
@@ -83,7 +83,7 @@ class ActionNode(BaseModel):
             "assertion_action": model.assertion_action,
             "extraction_action": model.extraction_action,
             "python_script_action": model.python_script_action,
-            "fetch_2fa_action": model.fetch_2fa_action,
+            "two_factor_auth_action": model.two_factor_auth_action,
         }
         non_null = [k for k, v in provided.items() if v is not None]
 
@@ -107,7 +107,7 @@ class ActionNode(BaseModel):
             if (
                 model.assertion_action
                 or model.extraction_action
-                or model.fetch_2fa_action
+                or model.two_factor_auth_action
             ):
                 model.end_sleep_time = 0.0
 
@@ -134,7 +134,7 @@ class ActionNode(BaseModel):
             self.extraction_action.replace(pattern, replacement)
         if self.python_script_action:
             pass
-        if self.fetch_2fa_action:
+        if self.two_factor_auth_action:
             pass
 
         return self
