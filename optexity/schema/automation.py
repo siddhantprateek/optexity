@@ -316,6 +316,8 @@ class Automation(BaseModel):
     nodes: list[
         Annotated[ActionNode | ForLoopNode | IfElseNode, Field(discriminator="type")]
     ]
+    automation_description: str | None = None
+    automation_endpoint: str | None = None
 
     @model_validator(mode="before")
     def migrate_old_nodes(cls, data: dict[str, Any]):
