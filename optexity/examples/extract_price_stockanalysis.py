@@ -23,12 +23,13 @@ automation_json = {
                 "click_element": {
                     "prompt_instructions": "Click on the link with the name of the stock equivalent for {stock_ticker[0]}."
                 }
-            }
+            },
+            "before_sleep_time": 1,
         },
         {
             "extraction_action": {
                 "llm": {
-                    "source": ["screenshot"],
+                    "source": ["screenshot", "axtree"],
                     "extraction_format": {
                         "stock_name": "str",
                         "stock_price": "str",

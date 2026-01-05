@@ -154,7 +154,10 @@ def get_app_with_endpoints(is_aws: bool, child_id: int):
 
             await task_queue.put(task)
             return JSONResponse(
-                content={"success": True, "message": "Task has been allocated"},
+                content={
+                    "success": True,
+                    "message": "Task has been allocated. Check its status and output at https://dashboard.optexity.com/tasks",
+                },
                 status_code=202,
             )
         except Exception as e:
@@ -192,7 +195,7 @@ def get_app_with_endpoints(is_aws: bool, child_id: int):
                 return JSONResponse(
                     content={
                         "success": True,
-                        "message": "Task has been allocated",
+                        "message": "Task has been allocated. Check its status and output at https://dashboard.optexity.com/tasks",
                         "task_id": task.task_id,
                     },
                     status_code=202,
