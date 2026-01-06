@@ -138,8 +138,8 @@ async def handle_llm_extraction(
 
     system_instruction = f"""
     You are an expert in extracting information from a website. You will be given an axtree of a webpage.
-    Your task is to extract the information from the webpage and return it in the format specified by the instructions.
-    {llm_extraction.extraction_instructions}
+    Your task is to extract the information from the webpage and return it in the format specified by the instructions. You will be first provided the instructions and then the axtree.
+    Instructions: {llm_extraction.extraction_instructions}
     """
 
     prompt = f"""
