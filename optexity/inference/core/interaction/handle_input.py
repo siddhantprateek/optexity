@@ -48,15 +48,18 @@ async def handle_input_text(
         logger.debug(
             f"Executing prompt-based action: {input_text_action.__class__.__name__}"
         )
-        await input_text_index(input_text_action, browser, memory)
+        await input_text_index(input_text_action, browser, memory, task)
 
 
 async def input_text_index(
-    input_text_action: InputTextAction, browser: Browser, memory: Memory
+    input_text_action: InputTextAction, browser: Browser, memory: Memory, task: Task
 ):
     try:
         index = await get_index_from_prompt(
-            memory, input_text_action.prompt_instructions, browser
+            memory,
+            input_text_action.prompt_instructions,
+            browser,
+            task,
         )
         if index is None:
             return

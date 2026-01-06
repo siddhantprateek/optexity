@@ -219,7 +219,9 @@ async def handle_assert_locator_presence_error(
             url=browser_state_summary.url,
             screenshot=browser_state_summary.screenshot,
             title=browser_state_summary.title,
-            axtree=browser_state_summary.dom_state.llm_representation(),
+            axtree=browser_state_summary.dom_state.llm_representation(
+                remove_empty_nodes=task.automation.remove_empty_nodes_in_axtree
+            ),
         )
         final_prompt, response, token_usage = error_handler_agent.classify_error(
             error.command, memory.browser_states[-1].screenshot

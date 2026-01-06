@@ -18,14 +18,16 @@ index_prediction_agent = ActionPredictionLocatorAxtree()
 
 
 async def get_index_from_prompt(
-    memory: Memory, prompt_instructions: str, browser: Browser
+    memory: Memory, prompt_instructions: str, browser: Browser, task: Task
 ):
     browser_state_summary = await browser.get_browser_state_summary()
     memory.browser_states[-1] = BrowserState(
         url=browser_state_summary.url,
         screenshot=browser_state_summary.screenshot,
         title=browser_state_summary.title,
-        axtree=browser_state_summary.dom_state.llm_representation(),
+        axtree=browser_state_summary.dom_state.llm_representation(
+            remove_empty_nodes=task.automation.remove_empty_nodes_in_axtree
+        ),
     )
 
     try:

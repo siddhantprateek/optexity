@@ -311,6 +311,7 @@ class Parameters(BaseModel):
 class Automation(BaseModel):
     browser_channel: Literal["chromium", "chrome"] = "chromium"
     expected_downloads: int = 0
+    remove_empty_nodes_in_axtree: bool = True
     url: str
     parameters: Parameters
     nodes: list[

@@ -36,16 +36,16 @@ async def handle_upload_file(
         logger.debug(
             f"Executing prompt-based action: {upload_file_action.__class__.__name__}"
         )
-        await upload_file_index(upload_file_action, browser, memory)
+        await upload_file_index(upload_file_action, browser, memory, task)
 
 
 async def upload_file_index(
-    upload_file_action: UploadFileAction, browser: Browser, memory: Memory
+    upload_file_action: UploadFileAction, browser: Browser, memory: Memory, task: Task
 ):
 
     try:
         index = await get_index_from_prompt(
-            memory, upload_file_action.prompt_instructions, browser
+            memory, upload_file_action.prompt_instructions, browser, task
         )
         if index is None:
             return

@@ -37,7 +37,11 @@ async def run_extraction_action(
 
     if extraction_action.llm:
         await handle_llm_extraction(
-            extraction_action.llm, memory, browser, extraction_action.unique_identifier
+            extraction_action.llm,
+            memory,
+            browser,
+            task,
+            extraction_action.unique_identifier,
         )
     elif extraction_action.network_call:
         await handle_network_call_extraction(
@@ -108,6 +112,7 @@ async def handle_llm_extraction(
     llm_extraction: LLMExtraction,
     memory: Memory,
     browser: Browser,
+    task: Task,
     unique_identifier: str | None = None,
 ):
     browser_state_summary = await browser.get_browser_state_summary()
@@ -115,7 +120,9 @@ async def handle_llm_extraction(
         url=browser_state_summary.url,
         screenshot=browser_state_summary.screenshot,
         title=browser_state_summary.title,
-        axtree=browser_state_summary.dom_state.llm_representation(),
+        axtree=browser_state_summary.dom_state.llm_representation(
+            remove_empty_nodes=task.automation.remove_empty_nodes_in_axtree
+        ),
     )
 
     # TODO: fix this double calling of screenshot and axtree

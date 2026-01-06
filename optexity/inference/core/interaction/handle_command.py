@@ -67,7 +67,9 @@ async def command_based_action_with_retry(
                     url=browser_state_summary.url,
                     screenshot=browser_state_summary.screenshot,
                     title=browser_state_summary.title,
-                    axtree=browser_state_summary.dom_state.llm_representation(),
+                    axtree=browser_state_summary.dom_state.llm_representation(
+                        remove_empty_nodes=task.automation.remove_empty_nodes_in_axtree
+                    ),
                 )
 
                 if isinstance(action, ClickElementAction):

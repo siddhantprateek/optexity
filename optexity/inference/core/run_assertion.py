@@ -6,6 +6,7 @@ from optexity.inference.infra.browser import Browser
 from optexity.inference.models import GeminiModels, get_llm_model
 from optexity.schema.actions.assertion_action import AssertionAction, LLMAssertion
 from optexity.schema.memory import Memory
+from optexity.schema.task import Task
 
 logger = logging.getLogger(__name__)
 
@@ -13,14 +14,17 @@ llm_model = get_llm_model(GeminiModels.GEMINI_2_5_FLASH, True)
 
 
 async def run_assertion_action(
-    assertion_action: AssertionAction, memory: Memory, browser: Browser
+    assertion_action: AssertionAction,
+    memory: Memory,
+    browser: Browser,
+    task: Task,
 ):
     logger.debug(
         f"---------Running assertion action {assertion_action.model_dump_json()}---------"
     )
 
     if assertion_action.llm:
-        await handle_llm_assertion(assertion_action.llm, memory, browser)
+        await handle_llm_assertion(assertion_action.llm, memory, browser, task)
     elif assertion_action.network_call:
         raise ValueError("Network call assertions are not supported yet")
         # await handle_network_call_assertion(
@@ -34,7 +38,7 @@ async def run_assertion_action(
 
 
 async def handle_llm_assertion(
-    llm_assertion: LLMAssertion, memory: Memory, browser: Browser
+    llm_assertion: LLMAssertion, memory: Memory, browser: Browser, task: Task
 ):
     extra_instruction = """You are a helpful assistant that verifies if the condition is met. 
         Use the info supplied below to verify the condition.
@@ -45,7 +49,7 @@ async def handle_llm_assertion(
     llm_assertion_new.extraction_instructions = (
         extra_instruction + "\n" + llm_assertion_new.extraction_instructions
     )
-    output_data = await handle_llm_extraction(llm_assertion_new, memory, browser)
+    output_data = await handle_llm_extraction(llm_assertion_new, memory, browser, task)
 
     if output_data.json_data["assertion_result"]:
         return True

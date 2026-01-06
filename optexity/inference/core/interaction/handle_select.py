@@ -60,7 +60,7 @@ async def select_option_index(
     try:
 
         index = await get_index_from_prompt(
-            memory, select_option_action.prompt_instructions, browser
+            memory, select_option_action.prompt_instructions, browser, task
         )
         if index is None:
             return

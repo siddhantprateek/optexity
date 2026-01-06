@@ -209,7 +209,9 @@ async def run_final_logging(
                     url=browser_state_summary.url,
                     screenshot=browser_state_summary.screenshot,
                     title=browser_state_summary.title,
-                    axtree=browser_state_summary.dom_state.llm_representation(),
+                    axtree=browser_state_summary.dom_state.llm_representation(
+                        remove_empty_nodes=task.automation.remove_empty_nodes_in_axtree
+                    ),
                 )
             )
 
@@ -279,7 +281,9 @@ async def run_action_node(
                 action_node.python_script_action, memory, browser
             )
         elif action_node.assertion_action:
-            await run_assertion_action(action_node.assertion_action, memory, browser)
+            await run_assertion_action(
+                action_node.assertion_action, memory, browser, task
+            )
 
     except Exception as e:
         logger.error(f"Error running node {memory.automation_state.step_index}: {e}")
