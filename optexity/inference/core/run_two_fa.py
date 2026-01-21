@@ -109,12 +109,16 @@ async def fetch_messages(
             end_2fa_time=end_2fa_time,
         )
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
 
-        response = await client.post(
-            url, json=body.model_dump(mode="json"), headers=headers
-        )
-        response.raise_for_status()
-        response_data = FetchMessagesResponse.model_validate(response.json())
+            response = await client.post(
+                url, json=body.model_dump(mode="json"), headers=headers
+            )
+            response.raise_for_status()
+            response_data = FetchMessagesResponse.model_validate(response.json())
 
-        return response_data.messages
+            return response_data.messages
+    except Exception as e:
+        logger.error(f"Error fetching messages: {e}")
+        return []
