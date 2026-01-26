@@ -57,7 +57,7 @@ async def smart_select(
     options: list[SelectOptionValue], patterns: list[str], memory: Memory
 ):
     # Get all options from the <select>
-
+    ## TODO: remove this once we have a better way to handle select one
     matched_values = []
 
     if len(options) == 0:
