@@ -64,6 +64,11 @@ async def smart_select(
         return []
     if len(options) == 1:
         return [options[0].value]
+    if len(options) == 2 and "Select One" in [o.value for o in options]:
+        if options[0].value == "Select One":
+            return [options[1].value]
+        else:
+            return [options[0].value]
 
     for p in patterns:
         # If pattern contains regex characters, treat as regex
