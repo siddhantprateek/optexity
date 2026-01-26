@@ -60,7 +60,9 @@ class Task(BaseModel):
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     error: Optional[str] = None
-    status: Literal["queued", "allocated", "running", "success", "failed", "cancelled"]
+    status: Literal[
+        "queued", "allocated", "running", "success", "failed", "cancelled", "killed"
+    ]
     is_cloud: bool = False
     save_directory: Path = Field(default=Path("/tmp/optexity"))
     use_proxy: bool = False
@@ -102,7 +104,9 @@ class Task(BaseModel):
                 unique_parameter_name: self.input_parameters[unique_parameter_name]
                 for unique_parameter_name in self.unique_parameter_names
             }
-            self.dedup_key = json.dumps(self.unique_parameters, sort_keys=True)
+            self.dedup_key = (
+                json.dumps(self.unique_parameters, sort_keys=True) + self.user_id
+            )
 
         for a, b in [
             (self.automation.parameters.input_parameters, self.input_parameters),
