@@ -126,7 +126,7 @@ class ClickElementAction(BaseAction):
 class InputTextAction(BaseAction):
     input_text: str | None = None
     is_slider: bool = False
-    fill_or_type: Literal["fill", "type"] = "fill"
+    fill_or_type: Literal["fill", "type", "key_press"] = "fill"
     press_enter: bool = False
 
     @model_validator(mode="after")

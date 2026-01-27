@@ -85,7 +85,7 @@ async def command_based_action_with_retry(
                     )
                 elif isinstance(action, InputTextAction):
                     await input_text_locator(
-                        action, locator, max_timeout_seconds_per_try
+                        action, locator, browser, max_timeout_seconds_per_try
                     )
                 elif isinstance(action, SelectOptionAction):
                     await select_option_locator(
@@ -169,6 +169,7 @@ async def click_locator(
 async def input_text_locator(
     input_text_action: InputTextAction,
     locator: Locator,
+    browser: Browser,
     max_timeout_seconds_per_try: float,
 ):
 
@@ -178,12 +179,19 @@ async def input_text_locator(
             no_wait_after=True,
             timeout=max_timeout_seconds_per_try * 1000,
         )
-    else:
+    elif input_text_action.fill_or_type == "type":
         await locator.type(
             input_text_action.input_text,
             no_wait_after=True,
             timeout=max_timeout_seconds_per_try * 1000,
         )
+    else:
+        page = await browser.get_current_page()
+        if page is None:
+            return
+        for char in input_text_action.input_text:
+            await page.keyboard.press(char)
+            await asyncio.sleep(0.1)
 
     if input_text_action.press_enter:
         await locator.press("Enter")
