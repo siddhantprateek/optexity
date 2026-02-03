@@ -63,6 +63,7 @@ async def run_automation(task: Task, child_process_id: int):
         if browser is None or not task.is_dedicated:
             browser = Browser(
                 memory=memory,
+                user_data_dir=f"/tmp/userdata_{task.task_id}",
                 headless=False,
                 channel=task.automation.browser_channel,
                 debug_port=9222 + child_process_id,

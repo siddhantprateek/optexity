@@ -2,7 +2,9 @@ import asyncio
 import base64
 import json
 import logging
+import pathlib
 import re
+import shutil
 from typing import Literal
 from uuid import uuid4
 
@@ -12,6 +14,7 @@ from patchright._impl._errors import TimeoutError as PatchrightTimeoutError
 from playwright._impl._errors import TimeoutError as PlaywrightTimeoutError
 from playwright.async_api import Download, Locator, Page, Request, Response
 
+from optexity.inference.infra.utils import _download_extension, _extract_extension
 from optexity.schema.memory import Memory, NetworkRequest, NetworkResponse
 from optexity.utils.settings import settings
 
@@ -61,9 +64,100 @@ class Browser:
 
         self.network_calls: list[NetworkResponse | NetworkRequest] = []
 
+        self.extensions = [
+            {
+                "name": "optexity recorder",
+                "id": "pbaganbicadeoacahamnbgohafchgakp",
+                "url": "https://clients2.google.com/service/update2/crx?response=redirect&prodversion=133&acceptformat=crx3&x=id%3Dpbaganbicadeoacahamnbgohafchgakp%26uc",
+            },
+            {
+                "name": "I still don't care about cookies",
+                "id": "edibdbjcniadpccecjdfdjjppcpchdlm",
+                "url": "https://clients2.google.com/service/update2/crx?response=redirect&prodversion=133&acceptformat=crx3&x=id%3Dedibdbjcniadpccecjdfdjjppcpchdlm%26uc",
+            },
+            # {
+            #     "name": "popupoff",
+            #     "id": "kiodaajmphnkcajieajajinghpejdjai",
+            #     "url": "https://clients2.google.com/service/update2/crx?response=redirect&prodversion=133&acceptformat=crx3&x=id%3Dkiodaajmphnkcajieajajinghpejdjai%26uc",
+            # },
+            # {
+            #     "name": "ublock origin",
+            #     "id": "ddkjiahejlhfcafbddmgiahcphecmpfh",
+            #     "url": "https://clients2.google.com/service/update2/crx?response=redirect&prodversion=133&acceptformat=crx3&x=id%3Dddkjiahejlhfcafbddmgiahcphecmpfh%26uc",
+            # },
+        ]
+
     async def start(self):
         logger.debug("Starting browser")
         try:
+            cache_dir = pathlib.Path("/tmp/extensions")
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            extension_paths = []
+            loaded_extension_names = []
+            for ext in self.extensions:
+                ext_dir = cache_dir / ext["id"]
+                crx_file = cache_dir / f'{ext["id"]}.crx'
+
+                # Check if extension is already extracted
+                if ext_dir.exists() and (ext_dir / "manifest.json").exists():
+                    logger.info(
+                        f'✅ Using cached {ext["name"]} extension from {ext_dir}'
+                    )
+                    extension_paths.append(str(ext_dir))
+                    loaded_extension_names.append(ext["name"])
+                    continue
+
+                try:
+                    # Download extension if not cached
+                    if not crx_file.exists():
+                        logger.info(f'📦 Downloading {ext["name"]} extension...')
+                        _download_extension(ext["url"], crx_file)
+                    else:
+                        logger.info(f'📦 Found cached {ext["name"]} .crx file')
+
+                    # Extract extension
+                    logger.info(f'📂 Extracting {ext["name"]} extension...')
+                    _extract_extension(crx_file, ext_dir)
+
+                    extension_paths.append(str(ext_dir))
+                    loaded_extension_names.append(ext["name"])
+                    logger.info(f'✅ Successfully loaded {ext["name"]}')
+
+                except Exception as e:
+                    logger.error(
+                        f'❌ Failed to setup {ext["name"]} extension: {e}',
+                        exc_info=True,
+                    )
+                    continue
+
+            if not extension_paths:
+                logger.error("⚠️ No extensions were loaded successfully!")
+
+            logger.info(f"Loaded extensions: {', '.join(loaded_extension_names)}")
+
+            args = [
+                "--disable-site-isolation-trials",
+                "--disable-web-security",
+                "--disable-features=IsolateOrigins,site-per-process",
+                "--allow-running-insecure-content",
+                "--ignore-certificate-errors",
+                "--ignore-ssl-errors",
+                "--ignore-certificate-errors-spki-list",
+                "--enable-extensions",
+                "--disable-extensions-file-access-check",
+                "--disable-extensions-http-throttling",
+            ]
+
+            if extension_paths:
+                disable_except = (
+                    f'--disable-extensions-except={",".join(extension_paths)}'
+                )
+                load_extension = f'--load-extension={",".join(extension_paths)}'
+                args.append(disable_except)
+                args.append(load_extension)
+                logger.info(f"Extension args: {disable_except}")
+                logger.info(f"Extension args: {load_extension}")
+
             if self.playwright is not None:
                 await self.playwright.stop()
 
@@ -99,25 +193,27 @@ class Browser:
                     proxy["password"] = settings.PROXY_PASSWORD
 
             self.playwright = await async_playwright().start()
-            self.browser = await self.playwright.chromium.launch(
+            self.context = await self.playwright.chromium.launch_persistent_context(
                 channel=self.channel,
+                user_data_dir=self.user_data_dir,
                 headless=self.headless,
                 proxy=proxy,
                 args=[
-                    "--start-fullscreen",
+                    # "--start-fullscreen",
                     "--disable-popup-blocking",
                     "--window-size=1920,1080",
                     f"--remote-debugging-port={self.debug_port}",
                     "--disable-gpu",
-                    "--disable-extensions",
                     "--disable-background-networking",
-                ],
+                ]
+                + args,
                 chromium_sandbox=False,
+                no_viewport=True,
             )
 
-            self.context = await self.browser.new_context(
-                no_viewport=True, ignore_https_errors=True
-            )
+            # self.context = await self.browser.new_context(
+            #     no_viewport=True, ignore_https_errors=True
+            # )
 
             async def log_request(req: Request):
                 await self.log_request(req)
@@ -135,7 +231,8 @@ class Browser:
                 "page", lambda p: (p.on("download", handle_random_download))
             )
 
-            self.page = await self.context.new_page()
+            # self.page = await self.context.new_page()
+            self.page = self.context.pages[0]
 
             browser_session = BrowserSession(cdp_url=self.cdp_url, keep_alive=True)
 
@@ -188,6 +285,7 @@ class Browser:
             logger.debug("Stopping playwright")
             await self.playwright.stop()
             self.playwright = None
+        shutil.rmtree(self.user_data_dir, ignore_errors=True)
         logger.debug("Full system stopped")
 
     async def get_current_page(self) -> Page | None:
