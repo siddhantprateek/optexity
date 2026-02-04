@@ -1,0 +1,4 @@
+{
+    "venvPath": ".",
+    "extraPaths": ["../browser-use"]
+}

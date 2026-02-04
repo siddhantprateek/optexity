@@ -8,6 +8,8 @@ import shutil
 from typing import Literal
 from uuid import uuid4
 
+import patchright.async_api
+import playwright.async_api
 from browser_use import Agent, BrowserSession, ChatGoogle
 from browser_use.browser.views import BrowserStateSummary
 from patchright._impl._errors import TimeoutError as PatchrightTimeoutError
@@ -20,20 +22,28 @@ from optexity.utils.settings import settings
 
 logger = logging.getLogger(__name__)
 
+_global_playwright: (
+    playwright.async_api.Playwright | patchright.async_api.Playwright | None
+) = None
+_global_context: (
+    playwright.async_api.BrowserContext | patchright.async_api.BrowserContext | None
+) = None
+
 
 class Browser:
     def __init__(
         self,
         memory: Memory,
-        user_data_dir: str = None,
+        user_data_dir: str,
         headless: bool = False,
-        proxy: str = None,
+        proxy: str | None = None,
         stealth: bool = True,
         backend: Literal["browser-use", "browserbase"] = "browser-use",
         debug_port: int = 9222,
         channel: Literal["chromium", "chrome"] = "chromium",
         use_proxy: bool = False,
         proxy_session_id: str | None = None,
+        is_dedicated: bool = False,
     ):
 
         if proxy:
@@ -47,9 +57,15 @@ class Browser:
         self.debug_port = debug_port
         self.use_proxy = use_proxy
         self.proxy_session_id = proxy_session_id
-        self.playwright = None
+        self.playwright: (
+            playwright.async_api.Playwright | patchright.async_api.Playwright | None
+        ) = None
         self.browser = None
-        self.context = None
+        self.context: (
+            playwright.async_api.BrowserContext
+            | patchright.async_api.BrowserContext
+            | None
+        ) = None
         self.page = None
         self.cdp_url = f"http://localhost:{self.debug_port}"
         self.backend_agent = None
@@ -57,7 +73,7 @@ class Browser:
         self.memory = memory
         self.page_to_target_id = []
         self.previous_total_pages = 0
-
+        self.is_dedicated = is_dedicated
         self.active_downloads = 0
         self.all_active_downloads_done = asyncio.Event()
         self.all_active_downloads_done.set()
@@ -88,6 +104,7 @@ class Browser:
         ]
 
     async def start(self):
+        global _global_playwright, _global_context
         logger.debug("Starting browser")
         try:
             cache_dir = pathlib.Path("/tmp/extensions")
@@ -192,44 +209,61 @@ class Browser:
                 if settings.PROXY_PASSWORD is not None:
                     proxy["password"] = settings.PROXY_PASSWORD
 
-            self.playwright = await async_playwright().start()
-            self.context = await self.playwright.chromium.launch_persistent_context(
-                channel=self.channel,
-                user_data_dir=self.user_data_dir,
-                headless=self.headless,
-                proxy=proxy,
-                args=[
-                    # "--start-fullscreen",
-                    "--disable-popup-blocking",
-                    "--window-size=1920,1080",
-                    f"--remote-debugging-port={self.debug_port}",
-                    "--disable-gpu",
-                    "--disable-background-networking",
-                ]
-                + args,
-                chromium_sandbox=False,
-                no_viewport=True,
-            )
+            if (
+                _global_playwright is None
+                or _global_context is None
+                or not self.is_dedicated
+            ):
+                self.playwright = await async_playwright().start()
+                self.context = await self.playwright.chromium.launch_persistent_context(
+                    channel=self.channel,
+                    user_data_dir=self.user_data_dir,
+                    headless=self.headless,
+                    proxy=proxy,
+                    args=[
+                        # "--start-fullscreen",
+                        "--disable-popup-blocking",
+                        "--window-size=1920,1080",
+                        f"--remote-debugging-port={self.debug_port}",
+                        "--disable-gpu",
+                        "--disable-background-networking",
+                    ]
+                    + args,
+                    chromium_sandbox=False,
+                    no_viewport=True,
+                )
+                _global_playwright = self.playwright
+                _global_context = self.context
+
+                async def log_request(req: Request):
+                    await self.log_request(req)
+
+                async def handle_random_download(download: Download):
+                    await self.handle_random_download(download)
+
+                async def handle_random_url_downloads(resp: Response):
+                    await self.handle_random_url_downloads(resp)
+
+                self.context.on("request", log_request)
+                self.context.on("response", handle_random_url_downloads)
+
+                self.context.on(
+                    "page", lambda p: (p.on("download", handle_random_download))
+                )
+
+            elif self.is_dedicated:
+                self.context = _global_context
+                self.playwright = _global_playwright
+                for i in range(len(self.context.pages) - 1, 0, -1):
+                    await self.context.pages[i].close()
+            else:
+                raise ValueError(
+                    "Browser is not dedicated and global playwright and context are not set"
+                )
 
             # self.context = await self.browser.new_context(
             #     no_viewport=True, ignore_https_errors=True
             # )
-
-            async def log_request(req: Request):
-                await self.log_request(req)
-
-            async def handle_random_download(download: Download):
-                await self.handle_random_download(download)
-
-            async def handle_random_url_downloads(resp: Response):
-                await self.handle_random_url_downloads(resp)
-
-            self.context.on("request", log_request)
-            self.context.on("response", handle_random_url_downloads)
-
-            self.context.on(
-                "page", lambda p: (p.on("download", handle_random_download))
-            )
 
             # self.page = await self.context.new_page()
             self.page = self.context.pages[0]
@@ -259,7 +293,7 @@ class Browser:
             raise e
 
     async def stop(self):
-        logger.debug("Stopping full system")
+        logger.debug("Stopping backend agent")
         if self.backend_agent is not None:
             logger.debug("Stopping backend agent")
             self.backend_agent.stop()
@@ -271,22 +305,25 @@ class Browser:
                 logger.debug("Browser session reset")
             self.backend_agent = None
 
-        if self.context is not None:
-            logger.debug("Stopping context")
-            await self.context.close()
-            self.context = None
+        if not self.is_dedicated:
+            logger.debug("Stopping context and playwright and browser as not dedicated")
+            if self.context is not None:
+                logger.debug("Stopping context")
+                await self.context.close()
+                self.context = None
 
-        if self.browser is not None:
-            logger.debug("Stopping browser")
-            await self.browser.close()
-            self.browser = None
+            if self.browser is not None:
+                logger.debug("Stopping browser")
+                await self.browser.close()
+                self.browser = None
 
-        if self.playwright is not None:
-            logger.debug("Stopping playwright")
-            await self.playwright.stop()
-            self.playwright = None
-        shutil.rmtree(self.user_data_dir, ignore_errors=True)
-        logger.debug("Full system stopped")
+            if self.playwright is not None:
+                logger.debug("Stopping playwright")
+                await self.playwright.stop()
+                self.playwright = None
+            shutil.rmtree(self.user_data_dir, ignore_errors=True)
+        else:
+            logger.debug("browser not stopped as dedicated")
 
     async def get_current_page(self) -> Page | None:
         if self.context is None:
