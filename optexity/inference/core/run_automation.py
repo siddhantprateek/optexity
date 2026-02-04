@@ -80,6 +80,8 @@ async def run_automation(task: Task, child_process_id: int):
         memory.automation_state.step_index = -1
         memory.automation_state.try_index = 0
 
+        await browser.go_to_url("about:blank")
+
         if task.use_proxy:
 
             await browser.go_to_url("https://ipinfo.io/json")

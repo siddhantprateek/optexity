@@ -413,8 +413,6 @@ class Browser:
 
     async def go_to_url(self, url: str):
         try:
-            if url == "about:blank":
-                return
             page = await self.get_current_page()
             if page is None:
                 return None
