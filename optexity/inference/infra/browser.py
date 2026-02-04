@@ -244,11 +244,15 @@ class Browser:
                         f"--remote-debugging-port={self.debug_port}",
                         "--disable-gpu",
                         "--disable-background-networking",
+                        "--disable-sync",
+                        "--disable-translate",
+                        "--disable-features=site-per-process",
                     ]
                     + args,
                     chromium_sandbox=False,
                     no_viewport=True,
                 )
+
                 _global_playwright = self.playwright
                 _global_context = self.context
 

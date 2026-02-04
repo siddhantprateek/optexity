@@ -42,8 +42,23 @@ logger = logging.getLogger(__name__)
 
 # TODO: give a warning where any variable of type {variable_name[index]} is used but variable_name is not in the memory in generated variables or in input variables
 
+DRIVER_CLOSED_MARKERS = (
+    "Connection closed",
+    "Target closed",
+    "Browser closed",
+    "no close frame",
+    "has been closed",
+)
 
-async def run_automation(task: Task, child_process_id: int):
+
+def is_driver_closed_error(e: Exception) -> bool:
+    msg = str(e)
+    return any(m in msg for m in DRIVER_CLOSED_MARKERS)
+
+
+async def run_automation(task: Task, child_process_id: int, max_retries: int = 1):
+    if max_retries <= 0:
+        return
     file_handler = logging.FileHandler(str(task.log_file_path))
     file_handler.setLevel(logging.DEBUG)
 
@@ -75,7 +90,6 @@ async def run_automation(task: Task, child_process_id: int):
             ),
             is_dedicated=task.is_dedicated,
         )
-        await browser.start()
 
         automation = task.automation
 
@@ -83,6 +97,7 @@ async def run_automation(task: Task, child_process_id: int):
         memory.automation_state.try_index = 0
 
         try:
+            await browser.start()
             await browser.go_to_url("about:blank")
         except Exception as e:
             logger.error(
@@ -157,9 +172,20 @@ async def run_automation(task: Task, child_process_id: int):
         task.error = str(e)
         task.status = "failed"
     except Exception as e:
-        logger.error(f"Error running automation: {traceback.format_exc()}")
-        task.error = str(e)
-        task.status = "failed"
+        if is_driver_closed_error(e):
+            logger.error(f"Driver closed error: {e}, restarting browser")
+            if browser is not None:
+                await browser.stop(force=True)
+        if max_retries > 1:
+            logger.info(
+                f"Running automations again with {max_retries - 1} retries left"
+            )
+            return await run_automation(task, child_process_id, max_retries - 1)
+        else:
+            logger.error(f"Error running automation: {traceback.format_exc()}")
+            task.error = str(e)
+            task.status = "failed"
+
     finally:
         if task and memory:
             await run_final_downloads_check(task, memory, browser)
