@@ -9,6 +9,7 @@ import time
 from typing import Literal
 
 import aiohttp
+from playwright.async_api import ProxySettings
 
 from optexity.inference.infra.utils import _download_extension, _extract_extension
 from optexity.utils.settings import settings
@@ -75,15 +76,17 @@ class ActualBrowser:
         use_proxy: bool = False,
         proxy_session_id: str | None = None,
     ):
-        self.chrome_path = find_chrome_binary(channel)
+        # self.chrome_path = find_chrome_binary(channel)
         self.user_data_dir = f"/tmp/userdata_{unique_child_arn}"
         self.port = port
         self.headless = headless
         self.is_dedicated = is_dedicated
-        self.proc: asyncio.subprocess.Process | None = None
         self.use_proxy = use_proxy
         self.proxy_session_id = proxy_session_id
-
+        self.playwright = None
+        self.context = None
+        self.proc = None
+        self.channel: Literal["chrome", "chromium"] = channel
         self.extensions = [
             # {
             #     "name": "optexity recorder",
@@ -107,40 +110,45 @@ class ActualBrowser:
             },
         ]
 
-    async def start(self):
-        try:
-            logger.debug("Starting actual browser")
-            if self.proc and self.proc.returncode is None:
-                return
+    def get_args(self) -> list[str]:
+        args = [
+            # ---- security / isolation (Playwright parity)
+            "--disable-site-isolation-trials",
+            "--disable-web-security",
+            "--disable-features=IsolateOrigins,site-per-process",
+            "--allow-running-insecure-content",
+            "--ignore-certificate-errors",
+            "--ignore-ssl-errors",
+            "--ignore-certificate-errors-spki-list",
+            # ---- extensions
+            "--enable-extensions",
+            "--disable-extensions-file-access-check",
+            "--disable-extensions-http-throttling",
+            # ---- window / ui
+            "--disable-popup-blocking",
+            "--window-size=1920,1080",
+            # "--start-fullscreen",
+            # ---- performance / stability
+            "--disable-gpu",
+            "--disable-background-networking",
+            "--disable-sync",
+            "--disable-translate",
+            # ---- automation hygiene
+            f"--remote-debugging-port={self.port}",
+            "--disable-blink-features=AutomationControlled",
+            "--no-first-run",
+            "--no-default-browser-check",
+        ]
 
-            args = [
-                # ---- security / isolation (Playwright parity)
-                "--disable-site-isolation-trials",
-                "--disable-web-security",
-                "--disable-features=IsolateOrigins,site-per-process",
-                "--allow-running-insecure-content",
-                "--ignore-certificate-errors",
-                "--ignore-ssl-errors",
-                "--ignore-certificate-errors-spki-list",
-                # ---- extensions
-                "--enable-extensions",
-                "--disable-extensions-file-access-check",
-                "--disable-extensions-http-throttling",
-                # ---- window / ui
-                "--disable-popup-blocking",
-                "--window-size=1920,1080",
-                # ---- performance / stability
-                "--disable-gpu",
-                "--disable-background-networking",
-                "--disable-sync",
-                "--disable-translate",
-                # ---- automation hygiene
-                f"--remote-debugging-port={self.port}",
+        if not settings.USE_PLAYWRIGHT_BROWSER:
+
+            args += [
                 f"--user-data-dir={self.user_data_dir}",
-                "--no-first-run",
-                "--no-default-browser-check",
                 "--no-sandbox",
                 # ---- privacy / security
+                "--disable-save-password-bubble",
+                "--use-mock-keychain",
+                "--disable-features=PasswordManagerEnabled,PasswordManagerOnboarding",
                 "--disable-save-password-bubble",
                 "--disable-autofill-keyboard-accessory-view",
                 "--disable-autofill",
@@ -152,23 +160,68 @@ class ActualBrowser:
             if self.headless:
                 args.append("--headless=new")
 
-            extension_paths = self.get_extension_paths()
-            if extension_paths:
-                args.append(f"--disable-extensions-except={','.join(extension_paths)}")
-                args.append(f"--load-extension={','.join(extension_paths)}")
+            args += self.get_proxy_args_native()
 
-            # # 👇 ADD PROXY FLAGS
-            # args += self.get_proxy_args()
+        extension_paths = self.get_extension_paths()
+
+        if extension_paths:
+            disable_except = f'--disable-extensions-except={",".join(extension_paths)}'
+            load_extension = f'--load-extension={",".join(extension_paths)}'
+            args.append(disable_except)
+            args.append(load_extension)
+            logger.info(f"Extension args: {load_extension}")
+
+        return args
+
+    async def start(self):
+        if settings.USE_PLAYWRIGHT_BROWSER:
+            await self.start_playwright_browser()
+        else:
+            await self.start_native_browser()
+
+    async def start_native_browser(self):
+        try:
+            logger.debug("Starting actual browser")
+            if self.proc and self.proc.returncode is None:
+                return
+
+            if self.use_proxy:
+                raise NotImplementedError("Proxy is not supported for native browser")
 
             if not self.is_dedicated:
                 shutil.rmtree(self.user_data_dir, ignore_errors=True)
 
+            self.chrome_path = find_chrome_binary(self.channel)
+
             self.proc = await asyncio.create_subprocess_exec(
                 self.chrome_path,
-                *args,
+                *self.get_args(),
                 stdout=asyncio.subprocess.DEVNULL,
                 stderr=asyncio.subprocess.DEVNULL,
                 preexec_fn=os.setsid,  # critical: isolate process group
+            )
+
+            await self._wait_for_cdp()
+            logger.debug("CDP ready")
+        except Exception as e:
+            logger.error(f"Error starting actual browser: {e}")
+            raise e
+
+    async def start_playwright_browser(self):
+        try:
+            logger.debug("Starting actual browser")
+
+            from patchright.async_api import async_playwright
+
+            self.playwright = await async_playwright().start()
+            self.context = await self.playwright.chromium.launch_persistent_context(
+                channel=self.channel,
+                user_data_dir=self.user_data_dir,
+                headless=self.headless,
+                args=self.get_args(),
+                chromium_sandbox=False,
+                no_viewport=True,
+                proxy=self.get_proxy_playwright(),
             )
 
             await self._wait_for_cdp()
@@ -195,6 +248,15 @@ class ActualBrowser:
         raise RuntimeError("Chrome CDP not reachable")
 
     async def stop(self, graceful=True):
+        if settings.USE_PLAYWRIGHT_BROWSER:
+            await self.stop_playwright_browser(graceful)
+        else:
+            await self.stop_native_browser(graceful)
+
+        if not self.is_dedicated:
+            shutil.rmtree(self.user_data_dir, ignore_errors=True)
+
+    async def stop_native_browser(self, graceful=True):
         if not self.proc or self.proc.returncode is not None:
             return
 
@@ -211,8 +273,14 @@ class ActualBrowser:
 
         self.proc = None
 
-        if not self.is_dedicated:
-            shutil.rmtree(self.user_data_dir, ignore_errors=True)
+    async def stop_playwright_browser(self, graceful=True):
+        if self.context is not None:
+            await self.context.close()
+            self.context = None
+
+        if self.playwright is not None:
+            await self.playwright.stop()
+            self.playwright = None
 
     def get_extension_paths(self) -> list[str]:
         cache_dir = pathlib.Path("/tmp/extensions")
@@ -260,29 +328,21 @@ class ActualBrowser:
 
         return extension_paths
 
-    def _proxy_args(self) -> list[str]:
-        if not self.use_proxy:
+    def get_proxy_args_native(self) -> list[str]:
+
+        proxy = self.get_proxy_playwright()
+        if proxy is None:
             return []
 
-        if settings.PROXY_URL is None:
-            raise ValueError("PROXY_URL is not set")
-
-        server = self.proxy["server"]  # e.g. http://host:port
-        parsed = urlparse(settings.PROXY_URL)
-
-        if "username" in self.proxy and "password" in self.proxy:
-            proxy_url = (
-                f"{parsed.scheme}://"
-                f"{self.proxy['username']}:{self.proxy['password']}@"
-                f"{parsed.hostname}:{parsed.port}"
+        if proxy.get("username") is not None or proxy.get("password") is not None:
+            raise ValueError(
+                "Proxy with username and password is not supported for native browser"
             )
-        else:
-            proxy_url = settings.PROXY_URL
 
-        return [f"--proxy-server={proxy_url}"]
+        return [f"--proxy-server={proxy.get('server')}]"]
 
-    def get_proxy(self):
-        proxy = None
+    def get_proxy_playwright(self) -> ProxySettings | None:
+
         if self.use_proxy:
             if settings.PROXY_URL is None:
                 raise ValueError("PROXY_URL is not set")
@@ -307,4 +367,4 @@ class ActualBrowser:
 
             if settings.PROXY_PASSWORD is not None:
                 proxy["password"] = settings.PROXY_PASSWORD
-        return proxy
+            return ProxySettings(**proxy)
