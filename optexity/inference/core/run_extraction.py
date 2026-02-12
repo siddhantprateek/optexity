@@ -77,7 +77,7 @@ async def run_extraction_action(
             extraction_action.unique_identifier,
         )
     elif extraction_action.two_fa_action:
-        await run_two_fa_action(extraction_action.two_fa_action, memory)
+        await run_two_fa_action(extraction_action.two_fa_action, memory, task)
     elif extraction_action.pdf:
         await handle_pdf_extraction(extraction_action.pdf, memory)
 
