@@ -1,0 +1,20 @@
+# core
+"pydantic>=2",
+"pydantic-settings",
+
+# optexity forked dependency
+"optexity-browser-use>=0.9.5",
+
+# web / infra
+"fastapi",
+"httpx",
+"aiofiles",
+"async-lru",
+
+# browser tooling (runtime)
+"playwright",
+"patchright",
+
+# misc runtime deps
+"tokencost",
+"onepassword-sdk",
